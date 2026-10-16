@@ -38,12 +38,12 @@ import static app.buddy.assistant.Ui.*;
  * behind the "update available" notification (Settings → Update notices), and the sheet that notification opens.
  */
 public final class Updates extends BroadcastReceiver {
-    // TODO: create https://github.com/mrai/mrai-buddy and publish releases there; the updater must never
+    // TODO: create https://github.com/mrai-driod/mrai-buddy and publish releases there; the updater must never
     // check the original author's repo (github.com/ghorbelhamdi/buddy-android) for updates.
     static final String OUR_UPDATE_REPO = "https://github.com/mrai-driod/mrai-buddy";
     static final String MANUAL = "You can also get it at " + OUR_UPDATE_REPO + "/releases/latest (mrai-buddy.apk), or with Obtainium "
             + "for automatic updates (see " + OUR_UPDATE_REPO + "#updating).";
-    private static final String API = "https://api.github.com/repos/mrai/mrai-buddy/releases/latest";
+    private static final String API = "https://api.github.com/repos/mrai-driod/mrai-buddy/releases/latest";
     private static final String CHANNEL = "updates", ACTION_MUTE = "com.mrai.buddy.MUTE_UPDATES";
     private static final int ID = 3;
     private static final long DAY = 24 * 3600_000L;

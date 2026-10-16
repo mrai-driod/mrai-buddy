@@ -18,7 +18,7 @@ import android.os.SystemClock;
  * suspicious app activities") treat a full-screen overlay from an accessibility app as an attack.
  */
 final class ControlIndicator {
-    static final String CHANNEL = "control", ACTION_STOP = "app.buddy.assistant.STOP_CONTROL";
+    static final String CHANNEL = "control", ACTION_STOP = "com.mrai.buddy.STOP_CONTROL";
     private static final int NOTIFICATION_ID = 7;
     /** Idle time before it hides when no Buddy chat is running (e.g. a terminal session using the tools). */
     private static final long IDLE_EXTERNAL_MS = 15_000, IDLE_BUDDY_MS = 4_000, TICK_MS = 1_000;
@@ -77,7 +77,7 @@ final class ControlIndicator {
 
     private void notifyChip() {
         NotificationManager nm = svc.getSystemService(NotificationManager.class);
-        NotificationChannel ch = new NotificationChannel(CHANNEL, "Buddy is using your phone",
+        NotificationChannel ch = new NotificationChannel(CHANNEL, "Mrai Buddy is using your phone",
                 NotificationManager.IMPORTANCE_DEFAULT);
         ch.setDescription("Shows in the status bar while an agent operates the phone.");
         ch.setSound(null, null);
@@ -94,7 +94,7 @@ final class ControlIndicator {
         extras.putBoolean("android.requestPromotedOngoing", true);
         Notification.Builder b = new Notification.Builder(svc, CHANNEL)
                 .setSmallIcon(R.drawable.ic_launcher_monochrome)
-                .setContentTitle("Buddy is using your phone")
+                .setContentTitle("Mrai Buddy is using your phone")
                 .setContentText("Don't touch the screen until it's done, or tap Stop to take over.")
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)
@@ -102,7 +102,7 @@ final class ControlIndicator {
                 .setContentIntent(open)
                 .addExtras(extras)
                 .addAction(new Notification.Action.Builder(null, "Stop", stop).build());
-        if (android.os.Build.VERSION.SDK_INT >= 36) b.setShortCriticalText("Buddy");
+        if (android.os.Build.VERSION.SDK_INT >= 36) b.setShortCriticalText("Mrai Buddy");
         try {
             nm.notify(NOTIFICATION_ID, b.build());
         } catch (SecurityException ignored) {

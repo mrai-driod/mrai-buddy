@@ -101,13 +101,13 @@ public class SignInActivity extends Screen implements Account.Listener {
                 break;
             case NEED_INSTALL:
                 header(R.drawable.ms_terminal, "Install " + acc.name(), acc.claude()
-                        ? "Runs Claude Code inside Buddy on your Claude subscription."
-                        : acc.opencode() ? "Runs OpenCode inside Buddy. Its free models work right away, no account needed; "
+                        ? "Runs Claude Code inside Mrai Buddy on your Claude subscription."
+                        : acc.opencode() ? "Runs OpenCode inside Mrai Buddy. Its free models work right away, no account needed; "
                         + "connect your own providers (Anthropic, OpenAI, GitHub Copilot…) anytime."
-                        : "Runs Codex inside Buddy on your ChatGPT plan.", false);
-                note(acc.claude() ? "Downloads about 235 MB once: Buddy's Linux and Claude Code from Anthropic. Use Wi-Fi if you can."
-                        : acc.opencode() ? "Downloads about 230 MB once: Buddy's Linux, Node.js and OpenCode. Use Wi-Fi if you can."
-                        : "Downloads about 150 MB once: Buddy's Linux, Node.js and Codex from OpenAI. Use Wi-Fi if you can.");
+                        : "Runs Codex inside Mrai Buddy on your ChatGPT plan.", false);
+                note(acc.claude() ? "Downloads about 235 MB once: Mrai Buddy's Linux and Claude Code from Anthropic. Use Wi-Fi if you can."
+                        : acc.opencode() ? "Downloads about 230 MB once: Mrai Buddy's Linux, Node.js and OpenCode. Use Wi-Fi if you can."
+                        : "Downloads about 150 MB once: Mrai Buddy's Linux, Node.js and Codex from OpenAI. Use Wi-Fi if you can.");
                 primary("Install " + acc.name(), v -> acc.install(this));
                 break;
             case INSTALLING:
@@ -122,7 +122,7 @@ public class SignInActivity extends Screen implements Account.Listener {
                 }
                 header(R.drawable.ms_shield_person, acc.claude() ? "Sign in to Claude" : "Sign in to ChatGPT",
                         (acc.claude() ? "Use your Claude account (Pro or Max)." : "Use your ChatGPT account (Plus, Pro or Business).")
-                                + " Your browser opens; approve there and Buddy comes back by itself.", false);
+                                + " Your browser opens; approve there and Mrai Buddy comes back by itself.", false);
                 primary(acc.claude() ? "Sign in with Claude" : "Sign in with ChatGPT", v -> acc.startLogin(this));
                 secondary(acc.claude() ? "Sign in on another device" : "Sign in with a code", v -> {
                     pasteOpen = true;
@@ -141,8 +141,8 @@ public class SignInActivity extends Screen implements Account.Listener {
                 }
                 openBrowserOnce();
                 header(R.drawable.ms_shield_person, "Approve in your browser", acc.claude()
-                        ? "Tap Authorize on the Claude page. Buddy picks up the code and comes back by itself."
-                        : "Sign in and allow Codex. Then come back to Buddy; it finishes by itself.", false);
+                        ? "Tap Authorize on the Claude page. Mrai Buddy picks up the code and comes back by itself."
+                        : "Sign in and allow Codex. Then come back to Mrai Buddy; it finishes by itself.", false);
                 primary("Open the sign-in page again", v -> {
                     openedUrl = null;
                     openBrowserOnce();
@@ -165,7 +165,7 @@ public class SignInActivity extends Screen implements Account.Listener {
                 primary("Done", v -> finish());
                 updateButton();
                 secondary("Sign out", v -> confirmSheet(this, "Sign out of " + acc.name() + "?",
-                        acc.name() + " in Buddy stops working until you sign in again.", "Sign out", true, () -> acc.logout(this)));
+                        acc.name() + " in Mrai Buddy stops working until you sign in again.", "Sign out", true, () -> acc.logout(this)));
                 break;
             case ERROR:
                 header(R.drawable.ms_error, "Something went wrong", acc.detail, false);
@@ -184,7 +184,7 @@ public class SignInActivity extends Screen implements Account.Listener {
         header(R.drawable.ms_check, "OpenCode is ready", free
                 ? "Using OpenCode's free models. Pick one per chat with the model chip, or connect your own provider."
                 : "Connected: " + acc.plan + ". OpenCode's free models stay available too.", true);
-        note("Connecting a provider opens Buddy's terminal with opencode auth login: pick a provider and follow its steps. "
+        note("Connecting a provider opens Mrai Buddy's terminal with opencode auth login: pick a provider and follow its steps. "
                 + "To remove one later, run opencode auth logout there.");
         versionNote();
         primary("Done", v -> finish());
@@ -212,7 +212,7 @@ public class SignInActivity extends Screen implements Account.Listener {
                     "Open this link on any device and approve. Then copy the code the page shows and paste it below.", false);
         } else {
             header(R.drawable.ms_shield_person, "Enter this code",
-                    "On any device, open the link below, sign in to ChatGPT and enter the code. Buddy finishes by itself.", false);
+                    "On any device, open the link below, sign in to ChatGPT and enter the code. Mrai Buddy finishes by itself.", false);
             TextView code = monoText(this, acc.userCode == null ? "…" : acc.userCode, 34, TEXT);
             code.setTypeface(mono(this, 600));
             code.setLetterSpacing(0.08f);
@@ -303,7 +303,7 @@ public class SignInActivity extends Screen implements Account.Listener {
         });
         c.addView(head, full());
         if (pasteOpen) {
-            c.addView(text(this, "If Buddy doesn't come back by itself: tap Copy Code on the Claude page, then paste it here.",
+            c.addView(text(this, "If Mrai Buddy doesn't come back by itself: tap Copy Code on the Claude page, then paste it here.",
                     14, MUTED));
             LinearLayout r = row(this);
             r.setPadding(0, dp(this, 10), 0, 0);

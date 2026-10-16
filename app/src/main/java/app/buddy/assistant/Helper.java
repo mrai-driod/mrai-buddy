@@ -44,7 +44,7 @@ final class Helper {
     static void run(Context c, String... args) {
         final Context app = c.getApplicationContext();
         if (!Linux.installed(app)) {
-            throw new IllegalStateException("Buddy's Linux isn't installed yet. Open Settings to set it up.");
+            throw new IllegalStateException("Mrai Buddy's Linux isn't installed yet. Open Settings to set it up.");
         }
         final String[] cmd = new String[args.length + 3];
         cmd[0] = "/bin/bash";

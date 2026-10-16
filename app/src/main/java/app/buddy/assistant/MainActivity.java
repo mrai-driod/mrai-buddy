@@ -139,7 +139,7 @@ public class MainActivity extends Screen implements ChatHub.Listener, Account.Li
         top.addView(tile, new LinearLayout.LayoutParams(dp(this, 40), dp(this, 40)));
         LinearLayout name = column(this);
         name.setPadding(dp(this, 12), 0, 0, 0);
-        name.addView(title(this, "Buddy", 22));
+        name.addView(title(this, "Mrai Buddy", 22));
         LinearLayout status = row(this);
         status.addView(dot(this, ready ? OK : ACCENT, 7));
         TextView st = monoText(this, ready ? "ready · 127.0.0.1:" + McpServer.PORT : "setup " + setup.count() + "/5", 12, MUTED);
@@ -158,7 +158,7 @@ public class MainActivity extends Screen implements ChatHub.Listener, Account.Li
             wt.setPadding(dp(this, 12), 0, dp(this, 8), 0);
             wt.addView(title(this, "Finish setup to run chats", 15));
             int n = setup.next();
-            wt.addView(text(this, "Next: " + (n >= 0 ? SetupState.STEPS[n] : "open Buddy's accessibility service"), 13, MUTED));
+            wt.addView(text(this, "Next: " + (n >= 0 ? SetupState.STEPS[n] : "open Mrai Buddy's accessibility service"), 13, MUTED));
             warn.addView(wt, weight1());
             warn.addView(icon(this, R.drawable.ms_chevron_right, MUTED, 22));
             warn.setOnClickListener(v -> go(SetupActivity.class));

@@ -183,7 +183,7 @@ final class Prefs {
 
     /** Accent colour (opaque ARGB). */
     static int accent(Context c) {
-        return sp(c).getInt("accent", 0xFFD97757);
+        return sp(c).getInt("accent", 0xFFD7263D);
     }
 
     static void setAccent(Context c, int color) {
@@ -290,7 +290,7 @@ final class Prefs {
 
     /** Its name in the Claude app. */
     static String remoteName(Context c) {
-        return sp(c).getString("remote_name", "Buddy");
+        return sp(c).getString("remote_name", "Mrai Buddy");
     }
 
     /** Terminal text size in sp (pinch to zoom). */

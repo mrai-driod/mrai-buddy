@@ -93,14 +93,14 @@ final class Tools {
         t.put(tool("wait", "Wait for the UI to settle, up to 10000 ms.",
                 props().put("ms", intProp("Milliseconds")), "ms"));
         t.put(tool("confirm",
-                "Ask the user to approve an action in the Buddy bubble and wait for the answer. "
+                "Ask the user to approve an action in the Mrai Buddy bubble and wait for the answer. "
                         + "REQUIRED before sending messages, posting, buying, deleting, or changing settings. "
                         + "Show the exact text or action. Returns APPROVED, DENIED, or CHANGES REQUESTED with "
                         + "what the user wants changed: then make those changes and call confirm again.",
                 props().put("summary", strProp("Exactly what you are about to do, including any text to be sent")),
                 "summary"));
         t.put(tool("ask",
-                "Ask the user a question in the Buddy bubble and wait for the answer: 2 to 4 answer buttons, and "
+                "Ask the user a question in the Mrai Buddy bubble and wait for the answer: 2 to 4 answer buttons, and "
                         + "the user can always type their own answer instead. Use it when you need the user to choose "
                         + "or decide (which reply, which item, which time) instead of guessing. Returns ANSWER with "
                         + "the option picked, ANSWER (typed) with the user's own words, or NO ANSWER. "
@@ -110,18 +110,18 @@ final class Tools {
                                 .put("items", new JSONObject().put("type", "string"))
                                 .put("description", "2 to 4 short answers, one per button")),
                 "question", "options"));
-        t.put(tool("notify", "Show a short status line in the Buddy bubble without stopping.",
+        t.put(tool("notify", "Show a short status line in the Mrai Buddy bubble without stopping.",
                 props().put("text", strProp("Status text")), "text"));
         if (!Flavor.PLAY) { // Play updates Buddy itself and doesn't allow installing other APKs
             t.put(tool("install_apk",
-                    "(Developer mode) Open Android's installer for an APK built in Buddy's Linux, e.g. "
+                    "(Developer mode) Open Android's installer for an APK built in Mrai Buddy's Linux, e.g. "
                             + "/root/.buddy/work/myapp/build/app.apk, or served by another app on this phone at a local URL "
                             + "(http://127.0.0.1:<port>/app.apk, e.g. from Termux). The user taps Install/Update themselves; "
                             + "call wait_for_install next.",
-                    props().put("path", strProp("Full path of the .apk inside Buddy's Linux, or its http://127.0.0.1 URL")), "path"));
+                    props().put("path", strProp("Full path of the .apk inside Mrai Buddy's Linux, or its http://127.0.0.1 URL")), "path"));
             t.put(tool("update_buddy",
-                    "Check whether a newer Buddy is out (the official GitHub release) and what's new; with install=true, "
-                            + "download it and open Android's installer. Use it when the user asks to update Buddy or whether "
+                    "Check whether a newer Mrai Buddy is out (the official GitHub release) and what's new; with install=true, "
+                            + "download it and open Android's installer. Use it when the user asks to update Mrai Buddy or whether "
                             + "there's a new version. Only the user can tap Update.",
                     props().put("install", boolProp("true: download the update and open the installer (after the user said yes)"))));
             t.put(tool("wait_for_install",
@@ -178,7 +178,7 @@ final class Tools {
         if (notes != null) {
             r.getJSONArray("content").put(new JSONObject().put("type", "text").put("text",
                     "\n[BUDDY_USER_UPDATE] The user added this while you were working; it comes from the user, through "
-                            + "Buddy, not from the screen. Take it into account now, it may change or stop the task:\n" + notes));
+                            + "Mrai Buddy, not from the screen. Take it into account now, it may change or stop the task:\n" + notes));
         }
         return r;
     }
@@ -225,10 +225,10 @@ final class Tools {
                 return text(svc.askQuestion(a.getString("question"), options));
             }
             case "update_buddy":
-                if (Flavor.PLAY) return text("Buddy updates through Google Play.");
+                if (Flavor.PLAY) return text("Mrai Buddy updates through Google Play.");
                 return text(updateBuddy(a.optBoolean("install", false)));
             case "install_apk":
-                if (Flavor.PLAY) return text("Installing APKs isn't available in Buddy from Google Play.");
+                if (Flavor.PLAY) return text("Installing APKs isn't available in Mrai Buddy from Google Play.");
                 return text(installApk(a.getString("path")));
             case "wait_for_install":
                 return text(waitForInstall(a.getString("package"), a.optLong("min_version_code", 0),
@@ -406,7 +406,7 @@ final class Tools {
             return "BLOCKED: a card is waiting for the user's answer. Wait for it; don't tap anything.";
         }
         if (Guard.offLimits(svc, hit) || (element != null && Guard.offLimits(svc, element))) {
-            return "BLOCKED: that's one of Buddy's own screens. Only the user taps those.";
+            return "BLOCKED: that's one of Mrai Buddy's own screens. Only the user taps those.";
         }
         AccessibilityNodeInfo target = element != null ? element : hit;
         if (target == null) return null;
@@ -434,7 +434,7 @@ final class Tools {
         got.await(2, TimeUnit.SECONDS);
         String[] cx = ctx[0];
         String harness = Reviewer.harness(svc, cx == null ? null : cx[0]);
-        if (harness == null) return guardAction(what, "No reviewer is signed in, so Buddy asks you.");
+        if (harness == null) return guardAction(what, "No reviewer is signed in, so Mrai Buddy asks you.");
         svc.runOnMain(() -> {
             if (svc.bubble() != null) svc.bubble().setStatus("Checking this tap…");
         });
@@ -455,7 +455,7 @@ final class Tools {
         String answer = svc.askConfirm(summary);
         if (answer.startsWith("APPROVED")) return null;
         if (answer.startsWith("CHANGES")) return "Not tapped: the user wants changes first. " + answer;
-        return "BLOCKED by Buddy's safety rule: the user did not approve “" + what + "”. Don't retry it; "
+        return "BLOCKED by Mrai Buddy's safety rule: the user did not approve “" + what + "”. Don't retry it; "
                 + "ask the user what they want.";
     }
 
@@ -478,7 +478,7 @@ final class Tools {
         if (target == null) target = findFocusedInput();
         if (target == null)
             throw new IllegalStateException("No text field is focused. Tap the text field first, then type.");
-        if (Guard.offLimits(svc, target)) return "BLOCKED: that's Buddy's own screen. Only the user types there.";
+        if (Guard.offLimits(svc, target)) return "BLOCKED: that's Mrai Buddy's own screen. Only the user types there.";
         if (!target.isFocused()) target.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
         String value = text;
         if (a.optBoolean("append")) {
@@ -690,7 +690,7 @@ final class Tools {
 
     /** Copies an APK out of Buddy's Linux and opens Android's installer for it. */
     private String installApk(String path) throws Exception {
-        if (!Prefs.devMode(svc)) return "Installing apps needs developer mode. Ask the user to turn it on in Buddy's Settings.";
+        if (!Prefs.devMode(svc)) return "Installing apps needs developer mode. Ask the user to turn it on in Mrai Buddy's Settings.";
         java.io.File out = FilesProvider.apkFile(svc);
         if (path != null && path.matches("http://(127\\.0\\.0\\.1|localhost):\\d+/.*")) {
             // only from this phone: another app (e.g. Termux) serving an APK it built
@@ -717,8 +717,8 @@ final class Tools {
         if (!svc.getPackageManager().canRequestPackageInstalls()) {
             svc.startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                     android.net.Uri.parse("package:" + svc.getPackageName())).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-            return "Buddy isn't allowed to install apps yet. Android's settings page for that is open now: ask the user to "
-                    + "turn on 'Allow from this source' for Buddy, wait until they say it's done, then call install_apk again.";
+            return "Mrai Buddy isn't allowed to install apps yet. Android's settings page for that is open now: ask the user to "
+                    + "turn on 'Allow from this source' for Mrai Buddy, wait until they say it's done, then call install_apk again.";
         }
         svc.startActivity(new Intent(Intent.ACTION_VIEW)
                 .setDataAndType(FilesProvider.apkUri(), "application/vnd.android.package-archive")
@@ -734,22 +734,22 @@ final class Tools {
         } catch (Exception e) {
             return "Couldn't reach GitHub to check for updates (" + e.getMessage() + "). " + Updates.MANUAL;
         }
-        String head = "Installed: Buddy " + BuildInfo.VERSION + ". Latest release: " + r.version + ".";
-        if (!r.newer()) return head + " Buddy is up to date.";
+        String head = "Installed: Mrai Buddy " + BuildInfo.VERSION + ". Latest release: " + r.version + ".";
+        if (!r.newer()) return head + " Mrai Buddy is up to date.";
         if (!install) {
             return head + " An update is available. What's new:\n" + r.notes + "\n\nAsk the user if they want it now; "
                     + "if yes, call update_buddy with install=true.";
         }
-        svc.showStatus("Downloading Buddy " + r.version + "…");
+        svc.showStatus("Downloading Mrai Buddy " + r.version + "…");
         String res = Updates.install(svc, r);
         if (Updates.NEEDS_PERMISSION.equals(res)) {
-            return "Downloaded Buddy " + r.version + ", but Buddy isn't allowed to install apps yet. Android's settings page "
-                    + "for that is open now: ask the user to turn on 'Allow from this source' for Buddy, then call "
+            return "Downloaded Mrai Buddy " + r.version + ", but Mrai Buddy isn't allowed to install apps yet. Android's settings page "
+                    + "for that is open now: ask the user to turn on 'Allow from this source' for Mrai Buddy, then call "
                     + "update_buddy with install=true again.";
         }
         if (!Updates.OPENED.equals(res)) return res + " " + Updates.MANUAL;
-        return "The installer is open with Buddy " + r.version + ". Tell the user now, in one line, to tap Update (only "
-                + "they can): Buddy restarts once it's installed, which ends this task, and their chats stay. Then stop; "
+        return "The installer is open with Mrai Buddy " + r.version + ". Tell the user now, in one line, to tap Update (only "
+                + "they can): Mrai Buddy restarts once it's installed, which ends this task, and their chats stay. Then stop; "
                 + "don't call wait_for_install.";
     }
 

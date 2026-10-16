@@ -102,7 +102,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         LinearLayout head = column(this);
         head.setPadding(dp(this, 20), dp(this, 8), dp(this, 20), dp(this, 4));
         head.addView(title(this, "Settings", 28));
-        TextView sub = text(this, "Buddy runs Claude Code, Codex or OpenCode inside the app, on your own subscription "
+        TextView sub = text(this, "Mrai Buddy runs Claude Code, Codex or OpenCode inside the app, on your own subscription "
                 + "(or OpenCode's free models).", 14, MUTED);
         sub.setPadding(0, dp(this, 4), 0, 0);
         head.addView(sub);
@@ -114,19 +114,19 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         Account acc = Account.of(backend);
         Step[] steps = new Step[5];
 
-        String a11yText = "This shows the bubble and lets Buddy read the screen, tap and type for you.";
+        String a11yText = "This shows the bubble and lets Mrai Buddy read the screen, tap and type for you.";
         if (!a11y && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             a11yText += "\n\nSwitch greyed out (\"Restricted setting\")? Android blocks this for apps installed from a file. "
                     + "Tap App info, then ⋮ in the top right → Allow restricted settings, and try again.";
         }
-        steps[0] = step("Turn on the Buddy accessibility service", a11yText, a11y,
+        steps[0] = step("Turn on the Mrai Buddy accessibility service", a11yText, a11y,
                 a11y ? null : "Open settings", v -> openAccessibilitySettings(this),
                 a11y || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ? null : "App info", v -> openAppInfo(getPackageName()));
 
         boolean installed = SetupState.installed(this, backend);
-        steps[1] = step("Install " + acc.name(), installed ? acc.name() + " is installed in Buddy."
+        steps[1] = step("Install " + acc.name(), installed ? acc.name() + " is installed in Mrai Buddy."
                         : acc.step == Account.Step.INSTALLING ? acc.detail
-                        : "Buddy downloads its own small Linux and " + acc.name() + (acc.claude()
+                        : "Mrai Buddy downloads its own small Linux and " + acc.name() + (acc.claude()
                         ? " from Anthropic (about 235 MB)." : acc.opencode() ? " (about 230 MB with Node.js)."
                         : " from OpenAI (about 150 MB)."),
                 installed, installed || acc.step == Account.Step.INSTALLING ? null : "Install", v -> openAgent(backend),
@@ -137,20 +137,20 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
                         + "Connect your own providers anytime." : "No sign-in needed for OpenCode's free models.")
                         : signed ? "Signed in" + (acc.email.isEmpty() ? "." : " as " + acc.email + ".")
                         : (acc.claude() ? "With your Claude account (Pro or Max)." : "With your ChatGPT account.")
-                        + " Your browser opens; approve there and Buddy comes back by itself.",
+                        + " Your browser opens; approve there and Mrai Buddy comes back by itself.",
                 installed ? signed : null, installed && !signed ? "Sign in" : null, v -> openAgent(backend), null, null);
 
         PowerManager pm = getSystemService(PowerManager.class);
         boolean buddyBg = pm.isIgnoringBatteryOptimizations(getPackageName());
-        steps[3] = step("Let Buddy run in the background", buddyBg ? "Allowed."
-                        : "So your phone doesn't stop Buddy to save battery while the agent works.",
+        steps[3] = step("Let Mrai Buddy run in the background", buddyBg ? "Allowed."
+                        : "So your phone doesn't stop Mrai Buddy to save battery while the agent works.",
                 buddyBg, buddyBg ? null : "Allow", v -> startActivity(new Intent(
                         Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + getPackageName()))),
                 null, null);
 
         boolean replied = Prefs.hadReply(this);
         steps[4] = step("Try it", replied
-                        ? "Buddy has answered you. Tap the bubble anytime to ask for more."
+                        ? "Mrai Buddy has answered you. Tap the bubble anytime to ask for more."
                         : a11y && signed
                         ? "Tap the bubble on the edge of your screen and ask something like \"open Messenger\", or start a chat here."
                         : "Finish the steps above first.",
@@ -173,7 +173,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
             Prefs.setSurface(this, v);
             themeChanged();
         }), topGap(8));
-        TextView sn = text(this, "Warm is Buddy's original tone. Black (true black) applies in dark mode only.", 13, MUTED);
+        TextView sn = text(this, "Warm is Mrai Buddy's original tone. Black (true black) applies in dark mode only.", 13, MUTED);
         ap.addView(sn, topGap(8));
         addCard(ap);
 
@@ -204,7 +204,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         list.addView(sectionLabel(this, "Phone tools in your own sessions"));
         LinearLayout mcp = card();
         mcp.setPadding(dp(this, 16), dp(this, 14), dp(this, 16), dp(this, 16));
-        mcp.addView(text(this, "Buddy's phone tools are a regular MCP server on this phone. Run this once in a terminal "
+        mcp.addView(text(this, "Mrai Buddy's phone tools are a regular MCP server on this phone. Run this once in a terminal "
                 + "on the phone (Termux, for example) and that agent gets the phone tools in every session, even without "
                 + "the bubble.", 14, MUTED));
         mcp.addView(segmented(this, new String[][]{{"claude", "claude"}, {"codex", "codex"}, {"opencode", "opencode"}},
@@ -233,7 +233,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         copy.setCompoundDrawablePadding(dp(this, 8));
         copy.setOnClickListener(v -> {
             ClipboardManager cm = getSystemService(ClipboardManager.class);
-            cm.setPrimaryClip(ClipData.newPlainText("Buddy MCP", cmd));
+            cm.setPrimaryClip(ClipData.newPlainText("Mrai Buddy MCP", cmd));
             Toast.makeText(this, "Copied. Paste it in your terminal.", Toast.LENGTH_SHORT).show();
         });
         LinearLayout.LayoutParams cpp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(this, 44));
@@ -258,7 +258,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
                 }, noVoice, this::needSignIn), topGap(8));
         String engineNote = "claude".equals(engine)
                 ? "Claude Code's dictation on your Claude plan: very accurate. Supports English, French, German, Spanish, "
-                + "Italian, Portuguese, Dutch, Turkish, Russian, Japanese and more, but not Arabic: for Arabic, Buddy uses "
+                + "Italian, Portuguese, Dutch, Turkish, Russian, Japanese and more, but not Arabic: for Arabic, Mrai Buddy uses "
                 + "the phone's recognizer. The words appear when you pause."
                 : "chatgpt".equals(engine)
                 ? "ChatGPT's voice through Codex, on your ChatGPT plan. Understands any language, even mixed in one sentence. "
@@ -281,7 +281,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
                 Prefs.setSpeechVoice(this, v);
                 render();
                 Voice.stopSpeaking();
-                Voice.speak(this, "Bonjour ! Hi, I'm Buddy. This is how I sound.");
+                Voice.speak(this, "Bonjour ! Hi, I'm Mrai Buddy. This is how I sound.");
             });
             vc.addView(voices, topGap(8));
         }
@@ -339,7 +339,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         list.addView(sectionLabel(this, "Remote Control"));
         LinearLayout rcc = card();
         boolean claudeIn = SetupState.signedIn(this, "claude");
-        rcc.addView(switchRow(this, "Claude Code session", "A Claude Code session that runs inside Buddy, with the phone tools. "
+        rcc.addView(switchRow(this, "Claude Code session", "A Claude Code session that runs inside Mrai Buddy, with the phone tools. "
                 + "Continue it from the Claude app (Code) on this phone or anywhere.", Prefs.remoteSession(this), on -> {
             if (on && !claudeIn) {
                 Toast.makeText(this, "Sign in to Claude Code first.", Toast.LENGTH_LONG).show();
@@ -389,11 +389,11 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
             LinearLayout t = column(this);
             t.addView(title(this, "Remove old Termux chats", 15));
             t.addView(text(this, old.size() + (old.size() == 1 ? " chat" : " chats")
-                    + " from before Buddy had its own Linux. Agents can't continue them.", 13, MUTED));
+                    + " from before Mrai Buddy had its own Linux. Agents can't continue them.", 13, MUTED));
             r.addView(t, weight1());
             r.addView(icon(this, R.drawable.ms_chevron_right, MUTED, 22));
             r.setOnClickListener(v -> confirmSheet(this, "Remove " + old.size() + (old.size() == 1 ? " old chat?" : " old chats?"),
-                    "Removes them from Buddy's chat list. This can't be undone.", "Remove", true, () -> {
+                    "Removes them from Mrai Buddy's chat list. This can't be undone.", "Remove", true, () -> {
                         ChatHub hub = ChatHub.get(this);
                         for (Sessions.Session s : old) hub.delete(s);
                         Toast.makeText(this, "Removed.", Toast.LENGTH_SHORT).show();
@@ -424,7 +424,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
                 }), full());
         ex.addView(divider(), lineParams());
         if (!Flavor.PLAY) { // the Play build is updated by Play
-            ex.addView(switchRow(this, "Update notices", "Buddy checks GitHub once a day and notifies you when a new "
+            ex.addView(switchRow(this, "Update notices", "Mrai Buddy checks GitHub once a day and notifies you when a new "
                     + "version is out.", Prefs.updateNotices(this), on -> {
                 Prefs.setUpdateNotices(this, on);
                 if (!on) Updates.cancel(this);
@@ -435,7 +435,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
             upd.setGravity(Gravity.CENTER_VERTICAL);
             LinearLayout ut = column(this);
             ut.addView(title(this, "Check for updates", 15));
-            ut.addView(text(this, "You have Buddy " + BuildInfo.VERSION + ". Or ask any agent: \u201cupdate yourself\u201d.",
+            ut.addView(text(this, "You have Mrai Buddy " + BuildInfo.VERSION + ". Or ask any agent: \u201cupdate yourself\u201d.",
                     13, MUTED), topGap(2));
             upd.addView(ut, weight1());
             upd.addView(icon(this, R.drawable.ms_chevron_right, MUTED, 20));
@@ -447,7 +447,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         perms.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout pt = column(this);
         pt.addView(title(this, "App permissions", 15));
-        pt.addView(text(this, "Choose per app: Trust lets the agent work there without popups; Hard means Buddy "
+        pt.addView(text(this, "Choose per app: Trust lets the agent work there without popups; Hard means Mrai Buddy "
                 + "itself asks you before Send, Pay, Delete…", 13, MUTED), topGap(2));
         perms.addView(pt, weight1());
         perms.addView(icon(this, R.drawable.ms_chevron_right, MUTED, 20));
@@ -463,7 +463,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
             })), full());
             ex.addView(divider(), lineParams());
         }
-        ex.addView(protect(switchRow(this, "Let agents tap Buddy's screens", "For testing Buddy with an agent (for "
+        ex.addView(protect(switchRow(this, "Let agents tap Mrai Buddy's screens", "For testing Mrai Buddy with an agent (for "
                 + "example Claude Code in Termux with the phone tools). The bubble, approval cards, App permissions and "
                 + "these switches stay off-limits.", Prefs.agentsTapBuddy(this), on -> {
             Prefs.setAgentsTapBuddy(this, on);
@@ -564,7 +564,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
             c.addView(guide);
         }
         if (!open) {
-            TextView s = text(this, complete ? "All set. Buddy is ready." : "Next: " + steps[next].title, 13, MUTED);
+            TextView s = text(this, complete ? "All set. Mrai Buddy is ready." : "Next: " + steps[next].title, 13, MUTED);
             s.setPadding(0, dp(this, 10), 0, 0);
             c.addView(single(s));
         } else {

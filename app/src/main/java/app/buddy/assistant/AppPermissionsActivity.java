@@ -82,7 +82,7 @@ public class AppPermissionsActivity extends Screen {
         body.addView(text(this, "Trust: the agent works on its own here, with no approval popups.\n"
                 + "Hard: your button rules decide. Send, Pay, Delete… need your OK on a card.\n"
                 + "Smart: the rules, then a separate reviewer AI checks every other tap against your request.\n"
-                + "The agent can never tap Buddy's own bubble, cards or settings.", 13, MUTED), full());
+                + "The agent can never tap Mrai Buddy's own bubble, cards or settings.", 13, MUTED), full());
 
         body.addView(label("Smart reviewer"), gap(18));
         // a reviewer that isn't signed in is greyed out

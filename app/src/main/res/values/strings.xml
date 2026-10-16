@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Buddy</string>
-    <string name="service_label">Buddy assistant</string>
-    <string name="service_description">Shows the Buddy chat bubble and lets Claude Code or Codex, running inside Buddy on this phone, read the screen and tap, type and scroll for you. Nothing leaves the phone except what the agent itself sends to Anthropic or OpenAI.</string>
+    <string name="app_name">Mrai Buddy</string>
+    <string name="service_label">Mrai Buddy assistant</string>
+    <string name="service_description">Shows the Mrai Buddy chat bubble and lets Claude Code or Codex, running inside Mrai Buddy on this phone, read the screen and tap, type and scroll for you. Nothing leaves the phone except what the agent itself sends to Anthropic or OpenAI.</string>
 </resources>

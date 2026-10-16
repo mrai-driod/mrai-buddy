@@ -16,7 +16,7 @@ import java.io.FileNotFoundException;
  * content://…/capture, and attachments open in a viewer via content://…/a/&lt;id&gt;.
  */
 public class FilesProvider extends ContentProvider {
-    static final String AUTHORITY = "app.buddy.assistant.files";
+    static final String AUTHORITY = "com.mrai.buddy.files";
 
     static Uri captureUri() {
         return Uri.parse("content://" + AUTHORITY + "/capture");

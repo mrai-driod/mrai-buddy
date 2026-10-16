@@ -176,7 +176,7 @@ final class Bubble implements ChatHub.Listener {
             }
         });
         face.setElevation(dp(5));
-        face.setContentDescription("Buddy");
+        face.setContentDescription("Mrai Buddy");
         // room around the face for the working ring
         bubbleFrame.setPadding(dp(4), dp(4), dp(4), dp(4));
         bubbleFrame.setClipToPadding(false);
@@ -190,7 +190,7 @@ final class Bubble implements ChatHub.Listener {
         holdRing = new HoldRing(svc);
         faceBox.addView(holdRing, new FrameLayout.LayoutParams(dp(74), dp(74), Gravity.CENTER));
         // 4. screen readers: "double-tap and hold for actions"
-        face.setContentDescription("Buddy. Tap to open, hold for actions");
+        face.setContentDescription("Mrai Buddy. Tap to open, hold for actions");
         face.setLongClickable(true);
         face.setOnLongClickListener(v -> { // TalkBack's double-tap-and-hold (touches go to DragListener)
             openMenu();
@@ -257,7 +257,7 @@ final class Bubble implements ChatHub.Listener {
         titles.setPadding(dp(4), dp(2), dp(4), dp(2));
         titles.setOnClickListener(v -> toggleSessionList());
         header = new TextView(svc);
-        header.setText("Buddy");
+        header.setText("Mrai Buddy");
         header.setTextColor(Ui.TEXT);
         header.setTypeface(Ui.sans(svc, 600));
         header.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
@@ -401,7 +401,7 @@ final class Bubble implements ChatHub.Listener {
         attach.setOnClickListener(v -> openInApp(true));
         inputRow.addView(attach, new LinearLayout.LayoutParams(dp(40), dp(40)));
         input = new EditText(svc);
-        input.setHint("Ask Buddy…");
+        input.setHint("Ask Mrai Buddy…");
         input.setHintTextColor(Ui.MUTED);
         input.setTextColor(Ui.TEXT);
         input.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
@@ -1098,11 +1098,11 @@ final class Bubble implements ChatHub.Listener {
         }
         final Sessions.Session ses = hub.latestRunning();
         if (ses == null) {
-            toast("Nothing is running in Buddy's chats.");
+            toast("Nothing is running in Mrai Buddy's chats.");
             return;
         }
         if (!Voice.micAllowed(svc)) {
-            toast("Allow the microphone in Buddy, then tap the mic again.");
+            toast("Allow the microphone in Mrai Buddy, then tap the mic again.");
             svc.startActivity(new android.content.Intent(svc, MainActivity.class)
                     .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("askMic", true));
             return;
@@ -1147,7 +1147,7 @@ final class Bubble implements ChatHub.Listener {
     /** Listen without opening the chat: waves under the bubble, the words beside it, sent when you pause. */
     private void talk() {
         if (!Voice.micAllowed(svc)) {
-            toast("Allow the microphone in Buddy, then tap the bubble again.");
+            toast("Allow the microphone in Mrai Buddy, then tap the bubble again.");
             svc.startActivity(new android.content.Intent(svc, MainActivity.class)
                     .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("askMic", true));
             return;
@@ -1251,7 +1251,7 @@ final class Bubble implements ChatHub.Listener {
         }
         if (!Voice.micAllowed(svc)) {
             // only an activity can ask for the microphone permission
-            toast("Allow the microphone in Buddy, then tap the mic again.");
+            toast("Allow the microphone in Mrai Buddy, then tap the mic again.");
             svc.startActivity(new android.content.Intent(svc, MainActivity.class)
                     .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("askMic", true));
             collapse();
@@ -1993,7 +1993,7 @@ final class Bubble implements ChatHub.Listener {
     private void copyOnLongPress(View v, String text) {
         v.setOnLongClickListener(x -> {
             ClipboardManager cm = svc.getSystemService(ClipboardManager.class);
-            cm.setPrimaryClip(ClipData.newPlainText("Buddy", text));
+            cm.setPrimaryClip(ClipData.newPlainText("Mrai Buddy", text));
             toast("Copied");
             return true;
         });

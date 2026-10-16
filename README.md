@@ -1,3 +1,5 @@
+> **Mrai Buddy** — based on [Buddy](https://github.com/ghorbelhamdi/buddy-android) by ghorbelhamdi, licensed under Apache 2.0.
+
 <p align="center">
   <img src="docs/banner.png" alt="Buddy: Claude Code, Codex and OpenCode in a bubble on your Android phone" width="100%">
 </p>

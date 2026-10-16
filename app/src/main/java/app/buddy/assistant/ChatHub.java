@@ -483,7 +483,7 @@ final class ChatHub {
                 if (ans.startsWith("NO ANSWER")) return "Question skipped";
                 return "Asking: " + clip(in.optString("question"), 80);
             }
-            case "update_buddy": return in.optBoolean("install") ? "Downloading the Buddy update" : "Checking for a Buddy update";
+            case "update_buddy": return in.optBoolean("install") ? "Downloading the Mrai Buddy update" : "Checking for a Mrai Buddy update";
             case "notify": return in.optString("text");
             case "WebSearch": return "Searching the web: " + clip(in.optString("query"), 40);
             case "WebFetch": return "Reading " + clip(in.optString("url"), 40);

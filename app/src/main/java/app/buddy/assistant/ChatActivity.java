@@ -983,7 +983,7 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
 
     private void copyOnLongPress(View v, String text) {
         v.setOnLongClickListener(x -> {
-            getSystemService(ClipboardManager.class).setPrimaryClip(ClipData.newPlainText("Buddy", text));
+            getSystemService(ClipboardManager.class).setPrimaryClip(ClipData.newPlainText("Mrai Buddy", text));
             Toast.makeText(this, "Copied", Toast.LENGTH_SHORT).show();
             return true;
         });

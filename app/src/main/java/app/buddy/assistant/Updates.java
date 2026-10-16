@@ -33,16 +33,18 @@ import java.net.URL;
 import static app.buddy.assistant.Ui.*;
 
 /**
- * Buddy's own updates, only ever from its official GitHub release (Android also refuses an APK that isn't signed
- * like the installed one). Used by the update_buddy tool, the daily check behind the "update available"
- * notification (Settings → Update notices), and the sheet that notification opens.
+ * Mrai Buddy's own updates, only ever from our GitHub releases (never the upstream Buddy repo; Android also
+ * refuses an APK that isn't signed like the installed one). Used by the update_buddy tool, the daily check
+ * behind the "update available" notification (Settings → Update notices), and the sheet that notification opens.
  */
 public final class Updates extends BroadcastReceiver {
-    static final String REPO = "https://github.com/ghorbelhamdi/buddy-android";
-    static final String MANUAL = "You can also get it at " + REPO + "/releases/latest (buddy.apk), or with Obtainium "
-            + "for automatic updates (see " + REPO + "#updating).";
-    private static final String API = "https://api.github.com/repos/ghorbelhamdi/buddy-android/releases/latest";
-    private static final String CHANNEL = "updates", ACTION_MUTE = "app.buddy.assistant.MUTE_UPDATES";
+    // TODO: create https://github.com/mrai/mrai-buddy and publish releases there; the updater must never
+    // check the original author's repo (github.com/ghorbelhamdi/buddy-android) for updates.
+    static final String OUR_UPDATE_REPO = "https://github.com/mrai/mrai-buddy";
+    static final String MANUAL = "You can also get it at " + OUR_UPDATE_REPO + "/releases/latest (buddy.apk), or with Obtainium "
+            + "for automatic updates (see " + OUR_UPDATE_REPO + "#updating).";
+    private static final String API = "https://api.github.com/repos/mrai/mrai-buddy/releases/latest";
+    private static final String CHANNEL = "updates", ACTION_MUTE = "com.mrai.buddy.MUTE_UPDATES";
     private static final int ID = 3;
     private static final long DAY = 24 * 3600_000L;
 
@@ -69,7 +71,7 @@ public final class Updates extends BroadcastReceiver {
         for (int i = 0; assets != null && i < assets.length(); i++) {
             JSONObject a = assets.getJSONObject(i);
             String url = a.optString("browser_download_url");
-            if ("buddy.apk".equals(a.optString("name")) && url.startsWith(REPO + "/releases/download/")) apk = url;
+            if ("buddy.apk".equals(a.optString("name")) && url.startsWith(OUR_UPDATE_REPO + "/releases/download/")) apk = url;
         }
         String notes = rel.optString("body").trim();
         if (notes.length() > 1200) notes = notes.substring(0, 1200) + "…";
@@ -100,7 +102,7 @@ public final class Updates extends BroadcastReceiver {
         }
         android.content.pm.PackageInfo pi = c.getPackageManager().getPackageArchiveInfo(out.getPath(), 0);
         if (pi == null || !c.getPackageName().equals(pi.packageName) || pi.getLongVersionCode() <= BuildInfo.VERSION_CODE) {
-            return "The downloaded file isn't a newer Buddy, so it wasn't opened.";
+            return "The downloaded file isn't a newer Mrai Buddy, so it wasn't opened.";
         }
         if (!c.getPackageManager().canRequestPackageInstalls()) {
             c.startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
@@ -137,7 +139,7 @@ public final class Updates extends BroadcastReceiver {
 
     private static void notify(Context c, Release r) {
         NotificationManager nm = c.getSystemService(NotificationManager.class);
-        nm.createNotificationChannel(new NotificationChannel(CHANNEL, "Buddy updates",
+        nm.createNotificationChannel(new NotificationChannel(CHANNEL, "Mrai Buddy updates",
                 NotificationManager.IMPORTANCE_DEFAULT));
         PendingIntent open = PendingIntent.getActivity(c, 30,
                 new Intent(c, MainActivity.class).putExtra("update", true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
@@ -148,7 +150,7 @@ public final class Updates extends BroadcastReceiver {
         String text = "You have " + BuildInfo.VERSION + ". Tap to see what's new and update; your chats stay.";
         Notification n = new Notification.Builder(c, CHANNEL)
                 .setSmallIcon(R.drawable.ic_launcher_monochrome)
-                .setContentTitle("Buddy " + r.version + " is available")
+                .setContentTitle("Mrai Buddy " + r.version + " is available")
                 .setContentText(text)
                 .setStyle(new Notification.BigTextStyle().bigText(text))
                 .setContentIntent(open)
@@ -194,7 +196,7 @@ public final class Updates extends BroadcastReceiver {
                 checking.cancel();
                 if (a.isFinishing() || a.isDestroyed()) return;
                 if (!r.newer()) {
-                    Toast.makeText(a, "Buddy " + BuildInfo.VERSION + " is up to date.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(a, "Mrai Buddy " + BuildInfo.VERSION + " is up to date.", Toast.LENGTH_LONG).show();
                     cancel(a);
                     return;
                 }
@@ -205,7 +207,7 @@ public final class Updates extends BroadcastReceiver {
 
     private static void sheet(Activity a, Release r) {
         LinearLayout c = column(a);
-        c.addView(title(a, "Buddy " + r.version + " is available", 18));
+        c.addView(title(a, "Mrai Buddy " + r.version + " is available", 18));
         TextView sub = text(a, "You have " + BuildInfo.VERSION + ". Updating keeps your chats, settings and sign-ins.", 13, MUTED);
         sub.setPadding(0, dp(a, 4), 0, dp(a, 12));
         c.addView(sub);
@@ -240,7 +242,7 @@ public final class Updates extends BroadcastReceiver {
                     if (OPENED.equals(res)) {
                         d.dismiss();
                     } else if (NEEDS_PERMISSION.equals(res)) {
-                        Toast.makeText(a, "Allow Buddy to install apps, then tap Update again.", Toast.LENGTH_LONG).show();
+                        Toast.makeText(a, "Allow Mrai Buddy to install apps, then tap Update again.", Toast.LENGTH_LONG).show();
                         update.setEnabled(true);
                         update.setText("Update");
                     } else {

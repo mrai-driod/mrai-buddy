@@ -68,7 +68,7 @@ public class TranscriptActivity extends Screen implements ChatHub.MonitorListene
             cont.setGravity(Gravity.CENTER);
             cont.setBackground(rounded(this, ACCENT, 14));
             cont.addView(icon(this, R.drawable.ms_forum, ON_ACCENT, 20));
-            TextView ct = title(this, "Continue in Buddy", 15);
+            TextView ct = title(this, "Continue in Mrai Buddy", 15);
             ct.setTextColor(ON_ACCENT);
             ct.setPadding(dp(this, 8), 0, 0, 0);
             cont.addView(ct);

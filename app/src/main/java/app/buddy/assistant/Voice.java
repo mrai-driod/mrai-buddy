@@ -97,7 +97,7 @@ final class Voice {
 
     /** Start listening. Returns an error message, or null when started. */
     static String listen(Context c, Listener l) {
-        if (!micAllowed(c)) return "Buddy needs the microphone. Open the Buddy app and tap 🎙 once to allow it.";
+        if (!micAllowed(c)) return "Mrai Buddy needs the microphone. Open the Mrai Buddy app and tap 🎙 once to allow it.";
         stopListening();
         stopSpeaking();
         String lang = Prefs.voiceLang(c);

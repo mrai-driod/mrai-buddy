@@ -79,7 +79,7 @@ public class MonitorActivity extends Screen implements ChatHub.MonitorListener {
         tt.setPadding(dp(this, 14), 0, dp(this, 8), 0);
         tt.addView(title(this, "Terminal", 15));
         tt.addView(text(this, TermSession.current != null && !TermSession.current.exited
-                ? "A shell is running · tap to return" : "A shell in Buddy's Linux", 13, MUTED));
+                ? "A shell is running · tap to return" : "A shell in Mrai Buddy's Linux", 13, MUTED));
         tc.addView(tt, weight1());
         tc.addView(icon(this, R.drawable.ms_chevron_right, MUTED, 22));
         tc.setOnClickListener(v -> startActivity(new Intent(this, TerminalActivity.class)));
@@ -134,7 +134,7 @@ public class MonitorActivity extends Screen implements ChatHub.MonitorListener {
         hub.monitor = this;
         pulse.start();
         if (BuddyService.get() == null) {
-            runningEmpty.setText("Buddy's accessibility service is off, so sessions can't be checked. Turn it on in Settings.");
+            runningEmpty.setText("Mrai Buddy's accessibility service is off, so sessions can't be checked. Turn it on in Settings.");
             return;
         }
         request("recent");
@@ -197,7 +197,7 @@ public class MonitorActivity extends Screen implements ChatHub.MonitorListener {
             final boolean background = "background".equals(kind);
             String title = p.optString("title").trim();
             final String where = chat != null ? chat.label()
-                    : !p.optString("buddy").isEmpty() ? "Deleted Buddy chat"
+                    : !p.optString("buddy").isEmpty() ? "Deleted Mrai Buddy chat"
                     : !title.isEmpty() ? title
                     : background ? "Background session" : "Terminal session";
 
@@ -249,7 +249,7 @@ public class MonitorActivity extends Screen implements ChatHub.MonitorListener {
                     chat != null ? where
                             : (background ? "It runs in the background, for example a chat you're continuing from the Claude app. "
                             : "It may be a session you're using in a terminal right now. ")
-                            + "It could even be the one controlling Buddy. Stopping it ends that conversation's current work.",
+                            + "It could even be the one controlling Mrai Buddy. Stopping it ends that conversation's current work.",
                     "Stop", true, () -> {
                         if (chat != null) hub.stop(chat);
                         else request("kill", String.valueOf(p.optLong("pid")));

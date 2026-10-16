@@ -118,7 +118,7 @@ public class TerminalActivity extends Screen implements TermView.Callbacks {
         setContentView(root);
 
         if (!Linux.installed(this)) {
-            Toast.makeText(this, "Install Claude Code, Codex or OpenCode in Settings first: that sets up Buddy's Linux.",
+            Toast.makeText(this, "Install Claude Code, Codex or OpenCode in Settings first: that sets up Mrai Buddy's Linux.",
                     Toast.LENGTH_LONG).show();
             startActivity(new Intent(this, SetupActivity.class));
             finish();

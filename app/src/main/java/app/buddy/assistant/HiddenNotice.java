@@ -12,7 +12,7 @@ import android.content.Intent;
 public final class HiddenNotice extends BroadcastReceiver {
     private static final String CHANNEL = "bubble_hidden";
     private static final int ID = 1;
-    static final String ACTION_SHOW = "app.buddy.assistant.SHOW_BUBBLE";
+    static final String ACTION_SHOW = "com.mrai.buddy.SHOW_BUBBLE";
 
     static void show(Context c) {
         NotificationManager nm = c.getSystemService(NotificationManager.class);
@@ -26,7 +26,7 @@ public final class HiddenNotice extends BroadcastReceiver {
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         Notification n = new Notification.Builder(c, CHANNEL)
                 .setSmallIcon(R.drawable.ic_launcher_monochrome)
-                .setContentTitle("Buddy is hidden")
+                .setContentTitle("Mrai Buddy is hidden")
                 .setContentText("Tap to show the bubble again.")
                 .setContentIntent(showBubble)
                 .addAction(new Notification.Action.Builder(null, "Open chats", openApp).build())

@@ -205,7 +205,7 @@ final class Account {
         app = c.getApplicationContext();
         if (busy()) return;
         final Context app = c.getApplicationContext();
-        set(Step.INSTALLING, "Setting up Buddy's Linux…");
+        set(Step.INSTALLING, "Setting up Mrai Buddy's Linux…");
         new Thread(() -> {
             try {
                 synchronized (Account.class) { // both agents use apk; don't run it twice at once

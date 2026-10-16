@@ -454,7 +454,7 @@ final class Ui {
         return d;
     }
 
-    static final String PRIVACY_URL = "https://github.com/ghorbelhamdi/buddy-android/blob/main/docs/PRIVACY.md";
+    static final String PRIVACY_URL = "https://github.com/mrai/mrai-buddy/blob/main/docs/PRIVACY.md";
 
     /**
      * Opens Android's accessibility settings, after the user has agreed to what Buddy's accessibility service does
@@ -467,15 +467,15 @@ final class Ui {
             return;
         }
         LinearLayout c = column(a);
-        c.addView(title(a, "How Buddy uses accessibility", 18));
+        c.addView(title(a, "How Mrai Buddy uses accessibility", 18));
         String[] points = {
-                "Buddy uses Android's accessibility service to do what you ask in other apps: it reads what's on the "
+                "Mrai Buddy uses Android's accessibility service to do what you ask in other apps: it reads what's on the "
                         + "screen and taps, types and scrolls for you. It also shows the floating bubble.",
                 "While a task runs, the screen content, which can include personal information such as messages, names "
                         + "or addresses, is sent to the AI service of the agent you choose (Anthropic for Claude Code, "
                         + "OpenAI for Codex, or your OpenCode model's provider), only to carry out your request.",
-                "Buddy has no servers of its own. It doesn't collect, sell or share this data, and doesn't use it for ads.",
-                "Before anything that sends, posts, buys or deletes, Buddy asks for your OK. You can turn the service "
+                "Mrai Buddy has no servers of its own. It doesn't collect, sell or share this data, and doesn't use it for ads.",
+                "Before anything that sends, posts, buys or deletes, Mrai Buddy asks for your OK. You can turn the service "
                         + "off anytime in Android's accessibility settings.",
         };
         for (String pt : points) {

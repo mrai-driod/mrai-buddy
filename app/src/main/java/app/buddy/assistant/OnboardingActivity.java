@@ -171,8 +171,8 @@ public class OnboardingActivity extends Screen implements Account.Listener {
                 brain();
                 break;
             case ACCESS:
-                header(R.drawable.ms_shield_person, "Let Buddy see and tap", ok ? "Accessibility is on." :
-                        "Buddy's accessibility service shows the bubble and lets the agent read the screen, tap and type, "
+                header(R.drawable.ms_shield_person, "Let Mrai Buddy see and tap", ok ? "Accessibility is on." :
+                        "Mrai Buddy's accessibility service shows the bubble and lets the agent read the screen, tap and type, "
                                 + "only when you ask it to do something.", ok);
                 if (!ok) {
                     note("Nothing leaves the phone except what " + agentNames() + " sends to "
@@ -180,7 +180,7 @@ public class OnboardingActivity extends Screen implements Account.Listener {
                             ? "the model's provider" : "Anthropic")
                             + " to answer you. Sending, posting, buying and deleting always ask for your OK first.");
                     if (accessTries > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) restrictedHelp();
-                    note("In the list: Downloaded apps → Buddy assistant → turn it on.");
+                    note("In the list: Downloaded apps → Mrai Buddy assistant → turn it on.");
                     primary("Open accessibility settings", v -> {
                         accessTries++;
                         openAccessibilitySettings(this);
@@ -234,7 +234,7 @@ public class OnboardingActivity extends Screen implements Account.Listener {
         face.setImageResource(R.drawable.bubble_face);
         tile.addView(face, new FrameLayout.LayoutParams(dp(this, 64), dp(this, 64), Gravity.CENTER));
         c.addView(tile, new LinearLayout.LayoutParams(dp(this, 88), dp(this, 88)));
-        TextView t = title(this, "Meet Buddy", 28);
+        TextView t = title(this, "Meet Mrai Buddy", 28);
         t.setGravity(Gravity.CENTER);
         t.setPadding(0, dp(this, 20), 0, dp(this, 6));
         c.addView(t);
@@ -313,7 +313,7 @@ public class OnboardingActivity extends Screen implements Account.Listener {
 
     private void agents(boolean ok) {
         header(R.drawable.ms_terminal, ok ? "Ready" : "Install and sign in",
-                ok ? agentNames() + " is installed and signed in." : "Buddy installs " + agentNames()
+                ok ? agentNames() + " is installed and signed in." : "Mrai Buddy installs " + agentNames()
                         + " inside the app, then you sign in once. No Termux needed.", ok);
         boolean first = true;
         for (String a : wanted(this)) {
@@ -339,11 +339,11 @@ public class OnboardingActivity extends Screen implements Account.Listener {
                 TextView how = text(this, installing ? acc.detail
                         : acc.step == Account.Step.ERROR ? acc.detail
                         : installed ? (acc.claude() ? "Sign in with your Claude account. Your browser opens; tap Authorize "
-                        + "and Buddy comes back by itself." : acc.opencode() ? "Checking OpenCode…"
+                        + "and Mrai Buddy comes back by itself." : acc.opencode() ? "Checking OpenCode…"
                         : "Sign in with your ChatGPT account in the browser, then come back.")
-                        : (acc.claude() ? "Downloads about 235 MB once (Buddy's Linux and Claude Code from Anthropic)."
-                        : acc.opencode() ? "Downloads about 230 MB once (Buddy's Linux, Node.js and OpenCode). No account needed."
-                        : "Downloads about 150 MB once (Buddy's Linux, Node.js and Codex from OpenAI)."), 14,
+                        : (acc.claude() ? "Downloads about 235 MB once (Mrai Buddy's Linux and Claude Code from Anthropic)."
+                        : acc.opencode() ? "Downloads about 230 MB once (Mrai Buddy's Linux, Node.js and OpenCode). No account needed."
+                        : "Downloads about 150 MB once (Mrai Buddy's Linux, Node.js and Codex from OpenAI)."), 14,
                         acc.step == Account.Step.ERROR ? ERR : MUTED);
                 how.setPadding(0, dp(this, 10), 0, installing ? 0 : dp(this, 10));
                 card.addView(how);
@@ -364,15 +364,15 @@ public class OnboardingActivity extends Screen implements Account.Listener {
         }
         if (!ok) {
             note("Use Wi-Fi if you can. You can leave this screen while it installs.");
-            stuck("Sign-in didn't come back?", "Claude: on the Claude page tap Copy Code, then come back to Buddy; "
+            stuck("Sign-in didn't come back?", "Claude: on the Claude page tap Copy Code, then come back to Mrai Buddy; "
                             + "it picks the code up from the clipboard.",
                     "Install failed?", "Check your connection and tap Install again; it continues where it stopped.");
         }
     }
 
     private void background(boolean ok) {
-        header(R.drawable.ms_build_circle, "Keep it running", ok ? "Buddy can run in the background." :
-                "So your phone doesn't stop Buddy to save battery while the agent works.", ok);
+        header(R.drawable.ms_build_circle, "Keep it running", ok ? "Mrai Buddy can run in the background." :
+                "So your phone doesn't stop Mrai Buddy to save battery while the agent works.", ok);
         if (!ok) {
             primary("Allow", v -> startActivity(new Intent(
                     Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + getPackageName()))));
@@ -382,7 +382,7 @@ public class OnboardingActivity extends Screen implements Account.Listener {
 
     private void safety() {
         header(R.drawable.ms_shield_person, "How much should it ask?", "Messaging, social, shopping, payment and banking "
-                + "apps always need your OK before Buddy sends, posts, buys or deletes. For your other apps:", false);
+                + "apps always need your OK before Mrai Buddy sends, posts, buys or deletes. For your other apps:", false);
         boolean auto = Prefs.autonomousDefault(this);
         String[][] opts = {
                 {"ask", "Ask me first", "The agent asks before anything risky, like changing a setting. Safer, but more popups."},
@@ -408,12 +408,12 @@ public class OnboardingActivity extends Screen implements Account.Listener {
             body.addView(r, p);
         }
         note("You can change this per app any time: Settings → App permissions. Set an app to Trust to let the agent "
-                + "work there without popups, or to Hard so Buddy itself asks you.");
+                + "work there without popups, or to Hard so Mrai Buddy itself asks you.");
         primary("Continue", v -> go(TRY));
     }
 
     private void tryIt() {
-        header(R.drawable.ms_check, "You're all set", "Try a first task. Buddy will open Settings and read it for you.", true);
+        header(R.drawable.ms_check, "You're all set", "Try a first task. Mrai Buddy will open Settings and read it for you.", true);
         TextView ex = monoText(this, "\"Open Settings and tell me my Android version\"", 13, TEXT);
         ex.setPadding(dp(this, 14), dp(this, 12), dp(this, 14), dp(this, 12));
         ex.setBackground(rounded(this, CARD, 12));

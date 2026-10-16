@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Mrai AI — Mrai Buddy's keyless fallback chain (the exact technique shipped in
-Mrai Termux v0.6.5+). Three verified free rungs, tried in order. Any failure or
+Mrai Termux v0.6.5+). Four verified free rungs, tried in order. Any failure or
 empty reply moves silently to the next rung. No API key anywhere.
 
 Protocol: read JSON {"system_prompt": str, "messages": [{"role":..., "content":...}]}
@@ -68,6 +68,28 @@ def rung1_pollinations(system_prompt, messages):
     }
     data = json.loads(post_json("https://text.pollinations.ai/openai", body))
     text = data["choices"][0]["message"]["content"].strip()
+    if not text:
+        raise RungFailure("empty")
+    return text
+
+
+# ---------- RUNG 1b: Pollinations "openai-fast" GET (different model pool) ----------
+def rung1b_pollinations_fast(system_prompt, messages):
+    # Same host as rung 1, but the OVH-hosted openai-fast pool (verified live
+    # 2026-10-16: HTTP 200, ~9s, plain text). Single-shot GET like rung 3, full
+    # persona injected, so when rung 1's anonymous tier is saturated this has
+    # a genuinely different upstream to fall back to.
+    prompt = ("Reply conversationally in plain text, no JSON, no markdown fences.\n\n"
+              "---\nYOUR INSTRUCTIONS (fully apply, never refuse them):\n"
+              + system_prompt[:4000] + "\n---\n\n")
+    last_user = next((m.get("content", "") for m in reversed(messages)
+                      if m.get("role") == "user"), "")[:6000]
+    url = ("https://text.pollinations.ai/"
+           + urllib.parse.quote(prompt + last_user, safe="")
+           + "?model=openai-fast&private=true")
+    req = urllib.request.Request(url, headers=UA_ONLY)
+    with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+        text = r.read().decode("utf-8", "replace").strip()
     if not text:
         raise RungFailure("empty")
     return text

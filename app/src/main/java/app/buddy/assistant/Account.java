@@ -33,20 +33,22 @@ final class Account {
     static final Account CLAUDE = new Account("claude");
     static final Account CODEX = new Account("codex");
     static final Account OPENCODE = new Account("opencode");
-    static final Account[] ALL = {CLAUDE, CODEX, OPENCODE};
+    static final Account MRAI = new Account("mrai");
+    static final Account[] ALL = {CLAUDE, CODEX, OPENCODE, MRAI};
 
     static Account of(String agent) {
-        return "codex".equals(agent) ? CODEX : "opencode".equals(agent) ? OPENCODE : CLAUDE;
+        return "mrai".equals(agent) ? MRAI : "codex".equals(agent) ? CODEX : "opencode".equals(agent) ? OPENCODE : CLAUDE;
     }
 
-    /** The agent's display name: "Claude Code", "Codex" or "OpenCode". */
+    /** The agent's display name: "Claude Code", "Codex", "OpenCode" or "Mrai AI". */
     static String nameOf(String agent) {
         return of(agent).name();
     }
 
-    /** Its command-line name, shown in mono labels: "claude-code", "codex" or "opencode". */
+    /** Its command-line name, shown in mono labels: "claude-code", "codex", "opencode" or "mrai-ai". */
     static String cliOf(String agent) {
-        return "codex".equals(agent) ? "codex" : "opencode".equals(agent) ? "opencode" : "claude-code";
+        return "mrai".equals(agent) ? "mrai-ai"
+                : "codex".equals(agent) ? "codex" : "opencode".equals(agent) ? "opencode" : "claude-code";
     }
 
     final String agent;
@@ -80,17 +82,23 @@ final class Account {
         return "claude".equals(agent);
     }
 
+    boolean mrai() {
+        return "mrai".equals(agent);
+    }
+
     boolean opencode() {
         return "opencode".equals(agent);
     }
 
     String name() {
-        return claude() ? "Claude Code" : opencode() ? "OpenCode" : "Codex";
+        return claude() ? "Claude Code" : mrai() ? "Mrai AI" : opencode() ? "OpenCode" : "Codex";
     }
 
     /** One line on what the agent runs on, for pickers. */
     String tagline() {
-        return claude() ? "Uses your Claude plan" : opencode() ? "Free models, or your own providers" : "Uses your ChatGPT plan";
+        return claude() ? "Uses your Claude plan"
+                : mrai() ? "Free and keyless · tries several providers"
+                : opencode() ? "Free models, or your own providers" : "Uses your ChatGPT plan";
     }
 
     static void addListener(Listener l) {
@@ -148,6 +156,18 @@ final class Account {
                         set(Step.SIGNED_IN, "");
                     } else {
                         set(Step.SIGNED_OUT, "");
+                    }
+                } else if (mrai()) {
+                    // keyless: ready when the script and python3 are in place. The chain itself
+                    // handles dead rungs at chat time, so no network probe here (kept cheap).
+                    String out = Linux.exec(app, "command -v python3 >/dev/null || { echo NOTINSTALLED; exit 0; }; "
+                            + "[ -f /root/bin/mrai-ai.py ] || { echo NOTINSTALLED; exit 0; }; echo MRAI_OK", 60);
+                    if (out.contains("NOTINSTALLED")) {
+                        set(Step.NEED_INSTALL, "");
+                    } else {
+                        email = "";
+                        plan = "keyless";
+                        set(Step.SIGNED_IN, "");
                     }
                 } else if (opencode()) {
                     // no sign-in needed: installed means ready. Connected providers (if any) are shown as the plan.
@@ -214,6 +234,7 @@ final class Account {
                     set(Step.INSTALLING, "Installing tools…");
                     String o = Linux.exec(app, "apk update -q && apk add -q bash curl jq libgcc libstdc++ ripgrep git "
                             + "ca-certificates procps coreutils findutils" + (claude() ? "" : " nodejs npm")
+                            + (mrai() ? " python3" : "")
                             + " && echo TOOLS_OK", 900);
                     if (!o.contains("TOOLS_OK")) throw new IOException(tail(o));
                 }
@@ -221,6 +242,12 @@ final class Account {
                     set(Step.INSTALLING, "Downloading Claude Code (about 230 MB)…");
                     String o = Linux.exec(app, "curl -fsSL https://claude.ai/install.sh -o /tmp/install.sh && bash /tmp/install.sh"
                             + " && /root/.local/bin/claude --version && echo AGENT_OK", 1800);
+                    if (!o.contains("AGENT_OK")) throw new IOException(tail(o));
+                } else if (mrai()) {
+                    set(Step.INSTALLING, "Checking Mrai AI…");
+                    // the script itself ships with the app (Helper.sync); nothing to download
+                    String o = Linux.exec(app, "command -v python3 >/dev/null && [ -f /root/bin/mrai-ai.py ]"
+                            + " && echo AGENT_OK", 60);
                     if (!o.contains("AGENT_OK")) throw new IOException(tail(o));
                 } else if (opencode()) {
                     set(Step.INSTALLING, "Downloading OpenCode…");
@@ -276,6 +303,14 @@ final class Account {
         updateNote = "";
         set(Step.INSTALLING, toV2 ? "Downloading OpenCode 2…" : "Checking for a new " + name() + "…");
         new Thread(() -> {
+            if (mrai()) {
+                // the chain ships with the app and updates with it — nothing to fetch
+                updateNote = "Mrai AI ships with the app and updates with it — nothing to do.";
+                updating = false;
+                set(Step.CHECKING, "");
+                refresh(app);
+                return;
+            }
             String o;
             try {
                 if (claude()) {
@@ -318,7 +353,7 @@ final class Account {
     /** remote = sign in on another device: Codex uses its device code; Claude shows its link to open elsewhere. */
     void startLogin(Context c, boolean onOtherDevice) {
         app = c.getApplicationContext();
-        if (busy() || opencode()) return; // OpenCode: providers are connected in the terminal (opencode auth login)
+        if (busy() || opencode() || mrai()) return; // OpenCode/Mrai AI: no sign-in (keyless)
         final Context app = c.getApplicationContext();
         url = null;
         state = null;
@@ -417,7 +452,7 @@ final class Account {
         final Context app = c.getApplicationContext();
         new Thread(() -> {
             try {
-                if (!opencode()) Linux.exec(app, claude() ? "claude auth logout" : "codex logout", 60);
+                if (!opencode() && !mrai()) Linux.exec(app, claude() ? "claude auth logout" : "codex logout", 60);
             } catch (Exception ignored) {
             }
             refresh(app);

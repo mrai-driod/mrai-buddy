@@ -22,12 +22,17 @@ final class Models {
             {"", "Default"},
             {"opencode/big-pickle", "opencode/big-pickle"},
     };
+    /** Mrai AI has no model picker: the chain picks a free rung by itself. */
+    static final String[][] MRAI = {
+            {"", "Default"},
+    };
     private static String[][] codexLive, opencodeLive;
 
     private Models() {
     }
 
     static String[][] forBackend(String backend) {
+        if ("mrai".equals(backend)) return MRAI;
         if ("opencode".equals(backend)) return opencodeLive != null ? opencodeLive : OPENCODE;
         if (!"codex".equals(backend)) return CLAUDE;
         return codexLive != null ? codexLive : CODEX;
@@ -86,6 +91,7 @@ final class Models {
         if (!s.actualModel.isEmpty()) return "now " + nameOf(s.backend, s.actualModel);
         if ("claude".equals(s.backend)) return "Claude Code picks it from your plan; shown here after the first message";
         if ("codex".equals(s.backend)) return "Codex picks it; shown here after the next reply";
+        if ("mrai".equals(s.backend)) return "Mrai AI tries free providers in order until one answers";
         return "OpenCode's default model";
     }
 

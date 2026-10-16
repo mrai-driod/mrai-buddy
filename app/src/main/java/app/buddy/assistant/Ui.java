@@ -236,10 +236,11 @@ final class Ui {
         return t;
     }
 
-    /** 40×40 tile with "CC" (Claude Code), "CX" (Codex) or "OC" (OpenCode). */
+    /** 40×40 tile with "CC" (Claude Code), "CX" (Codex), "OC" (OpenCode) or "MA" (Mrai AI). */
     static TextView agentTile(Context c, String backend) {
-        boolean claude = !"codex".equals(backend) && !"opencode".equals(backend);
-        TextView t = monoText(c, "codex".equals(backend) ? "CX" : "opencode".equals(backend) ? "OC" : "CC", 12,
+        boolean claude = !"codex".equals(backend) && !"opencode".equals(backend) && !"mrai".equals(backend);
+        TextView t = monoText(c, "codex".equals(backend) ? "CX" : "mrai".equals(backend) ? "MA"
+                : "opencode".equals(backend) ? "OC" : "CC", 12,
                 claude ? ACCENT_TEXT : TEXT);
         t.setTypeface(mono(c, 600));
         t.setGravity(Gravity.CENTER);

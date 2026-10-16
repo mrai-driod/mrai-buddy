@@ -102,10 +102,13 @@ public class SignInActivity extends Screen implements Account.Listener {
             case NEED_INSTALL:
                 header(R.drawable.ms_terminal, "Install " + acc.name(), acc.claude()
                         ? "Runs Claude Code inside Mrai Buddy on your Claude subscription."
+                        : acc.mrai() ? "Runs Mrai AI inside Mrai Buddy. Free and keyless: it tries several "
+                        + "providers in order until one answers, no account needed."
                         : acc.opencode() ? "Runs OpenCode inside Mrai Buddy. Its free models work right away, no account needed; "
                         + "connect your own providers (Anthropic, OpenAI, GitHub Copilot…) anytime."
                         : "Runs Codex inside Mrai Buddy on your ChatGPT plan.", false);
                 note(acc.claude() ? "Downloads about 235 MB once: Mrai Buddy's Linux and Claude Code from Anthropic. Use Wi-Fi if you can."
+                        : acc.mrai() ? "Downloads about 60 MB once: Mrai Buddy's Linux and Python. Use Wi-Fi if you can."
                         : acc.opencode() ? "Downloads about 230 MB once: Mrai Buddy's Linux, Node.js and OpenCode. Use Wi-Fi if you can."
                         : "Downloads about 150 MB once: Mrai Buddy's Linux, Node.js and Codex from OpenAI. Use Wi-Fi if you can.");
                 primary("Install " + acc.name(), v -> acc.install(this));
@@ -118,6 +121,10 @@ public class SignInActivity extends Screen implements Account.Listener {
             case SIGNED_OUT:
                 if (acc.opencode()) {
                     openCodeReady();
+                    break;
+                }
+                if (acc.mrai()) {
+                    mraiReady();
                     break;
                 }
                 header(R.drawable.ms_shield_person, acc.claude() ? "Sign in to Claude" : "Sign in to ChatGPT",
@@ -159,6 +166,10 @@ public class SignInActivity extends Screen implements Account.Listener {
                     openCodeReady();
                     break;
                 }
+                if (acc.mrai()) {
+                    mraiReady();
+                    break;
+                }
                 header(R.drawable.ms_check, "Signed in", (acc.email.isEmpty() ? acc.name() + " is ready."
                         : acc.email) + (acc.plan.isEmpty() ? "" : " · " + acc.plan), true);
                 versionNote();
@@ -176,6 +187,16 @@ public class SignInActivity extends Screen implements Account.Listener {
                 });
                 break;
         }
+    }
+
+    /** Mrai AI is installed: keyless, nothing to sign in to. The chain picks a working free rung per message. */
+    private void mraiReady() {
+        header(R.drawable.ms_check, "Mrai AI is ready",
+                "Free and keyless — it tries several providers in order until one answers. No account, no API key.", true);
+        note("If every free provider is down at once, Mrai AI says so instead of answering blank. Try again in a moment.");
+        versionNote();
+        primary("Done", v -> finish());
+        updateButton();
     }
 
     /** OpenCode is installed: nothing to sign in to. Providers are connected with `opencode auth login` in the terminal. */

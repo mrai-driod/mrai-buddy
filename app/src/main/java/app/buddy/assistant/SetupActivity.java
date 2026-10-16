@@ -183,11 +183,12 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         ag.setPadding(dp(this, 16), dp(this, 14), dp(this, 16), dp(this, 16));
         ag.addView(title(this, "Default brain", 15));
         TextView brainInfo = text(this, "Who answers new chats from the bubble or the New chat button. Claude Code uses "
-                + "your Claude plan, Codex your ChatGPT plan, OpenCode its free models or your own providers. "
-                + "Only agents that are set up can be picked.", 13, MUTED);
+                + "your Claude plan, Codex your ChatGPT plan, OpenCode its free models or your own providers, "
+                + "Mrai AI its keyless free-provider chain. Only agents that are set up can be picked.", 13, MUTED);
         brainInfo.setPadding(0, dp(this, 2), 0, 0);
         ag.addView(brainInfo);
-        ag.addView(segmented(this, new String[][]{{"claude", "Claude Code"}, {"codex", "Codex"}, {"opencode", "OpenCode"}},
+        ag.addView(segmented(this, new String[][]{{"claude", "Claude Code"}, {"codex", "Codex"}, {"opencode", "OpenCode"},
+                {"mrai", "Mrai AI"}},
                 backend, false, v -> {
                     Prefs.setBackend(this, v);
                     Toast.makeText(this, "New chats will use " + Account.nameOf(v)
@@ -829,7 +830,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         String st = Prefs.agentState(this, agent);
         boolean busy = a.step == Account.Step.INSTALLING;
         String state = busy ? "installing…" : !Linux.installed(this) || st == null || "NEED_INSTALL".equals(st) ? "not installed"
-                : a.opencode() ? "ready" + (a.plan.isEmpty() ? "" : " · " + a.plan)
+                : (a.opencode() || a.mrai()) ? "ready" + (a.plan.isEmpty() ? "" : " · " + a.plan)
                 : "SIGNED_IN".equals(st) ? "signed in" + (a.email.isEmpty() ? "" : " · " + a.email) : "not signed in";
         LinearLayout r = row(this);
         r.setPadding(0, dp(this, 10), 0, dp(this, 10));

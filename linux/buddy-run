@@ -1,6 +1,6 @@
 #!/bin/bash
 # Run by the Buddy app inside its built-in Linux (Alpine, through proot).
-#   buddy-run <token> ask <session> <claude|codex|opencode> <dev:0|1> <message> [model] [attachment-ids]
+#   buddy-run <token> ask <session> <claude|codex|opencode|mrai> <dev:0|1> <message> [model] [attachment-ids]
 #                                    run the agent on the message in that session, streaming events to the bubble
 #   buddy-run <token> stop <session>       stop that session's running request
 #   buddy-run <token> delete <session>     forget that session
@@ -60,7 +60,8 @@ agent_of() {
 
 case "$CMD" in
   ping) # setup check: proves RUN_COMMAND, the helper and the callback all work
-    agents=$({ have claude && echo claude; have codex && echo codex; have opencode && echo opencode; } | paste -sd, -)
+    agents=$({ have claude && echo claude; have codex && echo codex; have opencode && echo opencode
+      have python3 && [ -f /root/bin/mrai-ai.py ] && echo mrai; } | paste -sd, -)
     # signed in = the agent's saved login exists (OpenCode works without one: its free models)
     signed=$({ [ -s "$HOME/.claude/.credentials.json" ] && echo claude; [ -s "$HOME/.codex/auth.json" ] && echo codex
       have opencode && echo opencode; } | paste -sd, -)
@@ -409,10 +410,48 @@ stream_opencode() {
   fi
 }
 
+# --------------------------------------------------------------------- Mrai AI
+# Keyless fallback chain (mrai-ai.py): no account, no CLI to install, no sign-in.
+# History is a JSON array in $S/mrai-history.json; the whole turn is one python
+# call, so stop/delete work exactly like the other backends. Mrai AI has no
+# tools and no vision: the default persona below is all it gets (tweakable here).
+MRAI_PERSONA="You are Mrai Buddy, a helpful AI assistant living in the user's phone. Be concise, warm and direct."
+run_mrai() {
+  local hist="$S/mrai-history.json"
+  [ -f "$hist" ] || echo '[]' > "$hist"
+  jq --arg m "$MSG" '.[-39:] + [{role:"user", content:$m}]' "$hist" > "$hist.new" && mv "$hist.new" "$hist"
+  jq -cn --arg sys "$MRAI_PERSONA" --slurpfile h "$hist" '{system_prompt:$sys, messages:$h[0]}' \
+    | python3 /root/bin/mrai-ai.py 2>"$S/last-error.log"
+}
+
+# Mrai AI answers in one JSON line; translate it into the stream format the bubble understands.
+stream_mrai() {
+  local out reply err
+  out=$(cat)
+  [ -z "$out" ] && return 0 # python died; the error handler below reports last-error.log
+  reply=$(printf '%s' "$out" | jq -r '.reply // empty' 2>/dev/null)
+  err=$(printf '%s' "$out" | jq -r '.error // empty' 2>/dev/null)
+  if [ -n "$reply" ]; then
+    jq --arg r "$reply" '.[-39:] + [{role:"assistant", content:$r}]' "$S/mrai-history.json" \
+      > "$S/mrai-history.json.new" && mv "$S/mrai-history.json.new" "$S/mrai-history.json"
+    jq -cn --arg t "$reply" --arg s "$SID" \
+      '{type:"assistant", message:{content:[{type:"text", text:$t}]}, buddy_session:$s}' | post
+    jq -cn --arg s "$SID" '{type:"result", subtype:"success", result:"", buddy_session:$s}' | post
+  elif [ -n "$err" ]; then
+    jq -cn --arg e "$err" --arg s "$SID" '{type:"buddy_error", text:$e, buddy_session:$s}' | post
+  fi
+}
+
 # ------------------------------------------------------------------------ run
 (
-  if [ "$BACKEND" = opencode ]; then
-    if ! have opencode; then event buddy_error "OpenCode isn't installed yet. Install it in Buddy's Settings."; exit 0; fi
+  if [ "$BACKEND" = mrai ]; then
+    if ! have python3 || [ ! -f /root/bin/mrai-ai.py ]; then
+      event buddy_error "Mrai AI isn't installed yet. Install it in Mrai Buddy's Settings."; exit 0; fi
+    run_mrai | stream_mrai
+    status=${PIPESTATUS[0]}
+    name="Mrai AI"
+  elif [ "$BACKEND" = opencode ]; then
+    if ! have opencode; then event buddy_error "OpenCode isn't installed yet. Install it in Mrai Buddy's Settings."; exit 0; fi
     run_opencode | stream_opencode
     status=${PIPESTATUS[0]}
     if [ "$status" -ne 0 ] && [ -s "$S/opencode-session" ] && grep -q -i -E 'not found|no such|session' "$S/last-error.log" 2>/dev/null; then
@@ -422,7 +461,7 @@ stream_opencode() {
     fi
     name=OpenCode
   elif [ "$BACKEND" = codex ]; then
-    if ! have codex; then event buddy_error "Codex isn't installed yet. Install it in Buddy's Settings."; exit 0; fi
+    if ! have codex; then event buddy_error "Codex isn't installed yet. Install it in Mrai Buddy's Settings."; exit 0; fi
     run_codex | stream_codex
     status=${PIPESTATUS[0]}
     if [ "$status" -ne 0 ] && [ -s "$S/codex-thread" ] && grep -q -i -E 'not found|no such|unknown (thread|session)' "$S/last-error.log" 2>/dev/null; then
@@ -432,7 +471,7 @@ stream_opencode() {
     fi
     name=Codex
   else
-    if ! have claude; then event buddy_error "Claude Code isn't installed yet. Install it in Buddy's Settings."; exit 0; fi
+    if ! have claude; then event buddy_error "Claude Code isn't installed yet. Install it in Mrai Buddy's Settings."; exit 0; fi
     run_claude | stream_claude
     status=${PIPESTATUS[0]}
     if [ "$status" -ne 0 ] && grep -q -i 'no conversation found' "$S/last-error.log" 2>/dev/null; then

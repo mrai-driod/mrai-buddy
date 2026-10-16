@@ -174,10 +174,11 @@ final class Bubble implements ChatHub.Listener {
         face.setOutlineProvider(new android.view.ViewOutlineProvider() {
             @Override
             public void getOutline(View v, android.graphics.Outline o) {
-                float u = v.getWidth() / 56f;
-                o.setRoundRect(Math.round(2 * u), Math.round(3 * u), Math.round(54 * u), Math.round(42 * u), 13 * u);
+                // perfect oval cutout fitting the eye, no square corners
+                o.setOval(0, 0, v.getWidth(), v.getHeight());
             }
         });
+        face.setClipToOutline(true);
         face.setElevation(dp(5));
         face.setContentDescription("Mrai Buddy");
         // room around the face for the working ring
@@ -1880,9 +1881,14 @@ final class Bubble implements ChatHub.Listener {
             boolean idle = !blinking && breathing == null && !faceDragging();
             if (idle) {
                 blinking = true;
-                face.animate().scaleY(0.08f).setDuration(90).withEndAction(() ->
-                    face.animate().scaleY(1f).setDuration(140).withEndAction(() -> blinking = false).start()
-                ).start();
+                // slow, smooth blink like a real eye: ease closed, linger, ease open
+                face.animate().scaleY(0.06f).setDuration(280)
+                    .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
+                    .withEndAction(() ->
+                        face.animate().scaleY(1f).setDuration(380)
+                            .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
+                            .withEndAction(() -> blinking = false).start()
+                    ).start();
             }
             // next blink in 3–8s, like a real eye
             blinkHandler.postDelayed(this, 3000 + (long) (Math.random() * 5000));

@@ -857,9 +857,9 @@ final class Tools {
             StringBuilder out = new StringBuilder();
             // crude parse: result__a links and result__snippet divs
             java.util.regex.Matcher m = java.util.regex.Pattern.compile(
-                    "result__a[^>]*href="([^"]+)"[^>]*>(.*?)</a>", java.util.regex.Pattern.DOTALL).matcher(html);
+                    "result__a[^>]*href=\"([^\"]+)\"[^>]*>(.*?)</a>", java.util.regex.Pattern.DOTALL).matcher(html);
             java.util.regex.Matcher s = java.util.regex.Pattern.compile(
-                    "result__snippet[^>]*>(.*?)</", java.util.regex.Pattern.DOTALL).matcher(html);
+                    "result__snippet[^>]*>(.*?)</div>", java.util.regex.Pattern.DOTALL).matcher(html);
             int n = 0;
             while (m.find() && n < 5) {
                 String link = m.group(1).replaceAll("&amp;", "&");

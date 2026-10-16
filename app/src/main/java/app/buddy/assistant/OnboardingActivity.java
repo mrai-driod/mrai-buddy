@@ -128,7 +128,7 @@ public class OnboardingActivity extends Screen implements Account.Listener {
     static String[] wanted(Context c) {
         String a = Prefs.agents(c);
         if ("both".equals(a)) return new String[]{"claude", "codex"};
-        return new String[]{"codex".equals(a) || "opencode".equals(a) || "mrai".equals(a) ? a : "claude"};
+        return new String[]{"codex".equals(a) || "opencode".equals(a) || "mrai".equals(a) || "custom".equals(a) ? a : "claude"};
     }
 
     private void go(int s) {
@@ -177,6 +177,7 @@ public class OnboardingActivity extends Screen implements Account.Listener {
                 if (!ok) {
                     note("Nothing leaves the phone except what " + agentNames() + " sends to "
                             + ("mrai".equals(Prefs.agents(this)) ? "the free providers it tries in order"
+                            : "custom".equals(Prefs.agents(this)) ? "your own endpoint"
                             : "codex".equals(Prefs.agents(this)) ? "OpenAI" : "opencode".equals(Prefs.agents(this))
                             ? "the model's provider" : "Anthropic")
                             + " to answer you. Sending, posting, buying and deleting always ask for your OK first.");
@@ -265,6 +266,7 @@ public class OnboardingActivity extends Screen implements Account.Listener {
                 {"codex", "Codex", "Uses your ChatGPT plan."},
                 {"opencode", "OpenCode", "Free models, no account needed. Connect your own providers later."},
                 {"mrai", "Mrai AI", "Free and keyless — tries several providers until one answers."},
+                {"custom", "Custom AI", "Your own endpoint and key — any OpenAI-compatible API."},
                 {"both", "Claude Code + Codex", "Install both; pick per chat. Claude Code stays the default."},
         };
         for (String[] o : opts) {
@@ -303,7 +305,7 @@ public class OnboardingActivity extends Screen implements Account.Listener {
             r.addView(radio(on));
             r.setOnClickListener(v -> {
                 Prefs.setAgents(this, o[0]);
-                Prefs.setBackend(this, "codex".equals(o[0]) || "opencode".equals(o[0]) || "mrai".equals(o[0]) ? o[0] : "claude");
+                Prefs.setBackend(this, "codex".equals(o[0]) || "opencode".equals(o[0]) || "mrai".equals(o[0]) || "custom".equals(o[0]) ? o[0] : "claude");
                 render();
             });
             LinearLayout.LayoutParams p = full();

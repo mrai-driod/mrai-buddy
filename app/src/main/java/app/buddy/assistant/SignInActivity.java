@@ -27,6 +27,9 @@ public class SignInActivity extends Screen implements Account.Listener {
     private Account acc;
     private String openedUrl;
     private boolean pasteOpen;
+    /** Custom AI config form: edit mode, and the live fields (presets fill them). */
+    private boolean customEdit;
+    private EditText customNameEt, customUrlEt, customKeyEt, customModelEt;
 
     @Override
     protected void onCreate(Bundle state) {
@@ -102,12 +105,15 @@ public class SignInActivity extends Screen implements Account.Listener {
             case NEED_INSTALL:
                 header(R.drawable.ms_terminal, "Install " + acc.name(), acc.claude()
                         ? "Runs Claude Code inside Mrai Buddy on your Claude subscription."
+                        : acc.custom() ? "Runs Custom AI inside Mrai Buddy: your own endpoint and key, "
+                        + "talked to like any other brain. No account needed."
                         : acc.mrai() ? "Runs Mrai AI inside Mrai Buddy. Free and keyless: it tries several "
                         + "providers in order until one answers, no account needed."
                         : acc.opencode() ? "Runs OpenCode inside Mrai Buddy. Its free models work right away, no account needed; "
                         + "connect your own providers (Anthropic, OpenAI, GitHub Copilot…) anytime."
                         : "Runs Codex inside Mrai Buddy on your ChatGPT plan.", false);
                 note(acc.claude() ? "Downloads about 235 MB once: Mrai Buddy's Linux and Claude Code from Anthropic. Use Wi-Fi if you can."
+                        : acc.custom() ? "Downloads about 60 MB once: Mrai Buddy's Linux and Python. Use Wi-Fi if you can."
                         : acc.mrai() ? "Downloads about 60 MB once: Mrai Buddy's Linux and Python. Use Wi-Fi if you can."
                         : acc.opencode() ? "Downloads about 230 MB once: Mrai Buddy's Linux, Node.js and OpenCode. Use Wi-Fi if you can."
                         : "Downloads about 150 MB once: Mrai Buddy's Linux, Node.js and Codex from OpenAI. Use Wi-Fi if you can.");
@@ -125,6 +131,11 @@ public class SignInActivity extends Screen implements Account.Listener {
                 }
                 if (acc.mrai()) {
                     mraiReady();
+                    break;
+                }
+                if (acc.custom()) {
+                    customEdit = false;
+                    customForm();
                     break;
                 }
                 header(R.drawable.ms_shield_person, acc.claude() ? "Sign in to Claude" : "Sign in to ChatGPT",
@@ -170,6 +181,10 @@ public class SignInActivity extends Screen implements Account.Listener {
                     mraiReady();
                     break;
                 }
+                if (acc.custom()) {
+                    if (customEdit) customForm(); else customReady();
+                    break;
+                }
                 header(R.drawable.ms_check, "Signed in", (acc.email.isEmpty() ? acc.name() + " is ready."
                         : acc.email) + (acc.plan.isEmpty() ? "" : " · " + acc.plan), true);
                 versionNote();
@@ -197,6 +212,98 @@ public class SignInActivity extends Screen implements Account.Listener {
         versionNote();
         primary("Done", v -> finish());
         updateButton();
+    }
+
+    /** Custom AI endpoint config: provider name, OpenAI-compatible base URL, key, model. Presets just fill the fields. */
+    private void customForm() {
+        header(R.drawable.ms_shield_person, "Custom AI",
+                "Point Mrai Buddy at any OpenAI-compatible endpoint with your own key. The key stays on this phone.", false);
+        LinearLayout.LayoutParams segp = full();
+        segp.topMargin = dp(this, 16);
+        body.addView(segmented(this, new String[][]{{"openai", "OpenAI"}, {"gemini", "Gemini"}, {"custom", "Custom"}},
+                "custom", false, v -> {
+                    if ("openai".equals(v)) {
+                        customUrlEt.setText("https://api.openai.com/v1");
+                        if (customNameEt.getText().toString().trim().isEmpty()) customNameEt.setText("OpenAI");
+                    } else if ("gemini".equals(v)) {
+                        customUrlEt.setText("https://generativelanguage.googleapis.com/v1beta/openai");
+                        customModelEt.setText("gemini-2.0-flash");
+                        if (customNameEt.getText().toString().trim().isEmpty()) customNameEt.setText("Gemini");
+                        Toast.makeText(this, "Gemini: paste a free key from AI Studio (aistudio.google.com).", Toast.LENGTH_LONG).show();
+                    } else {
+                        customUrlEt.setText("");
+                        customModelEt.setText("");
+                    }
+                }), segp);
+        customNameEt = customField("Provider name", "My provider", false, Prefs.customName(this));
+        customUrlEt = customField("Base URL", "https://api.openai.com/v1", false, Prefs.customUrl(this));
+        customKeyEt = customField("API key", "sk-…", true, Prefs.customKey(this));
+        customModelEt = customField("Model", "e.g. gpt-4o-mini, gemini-2.0-flash", false, Prefs.customModel(this));
+        note("The key is stored on this phone only and sent only to the endpoint above. A wrong key shows as a readable chat error, never in logs.");
+        primary(customEdit ? "Save changes" : "Save", v -> {
+            String name = customNameEt.getText().toString().trim();
+            String url = customUrlEt.getText().toString().trim().replaceAll("/+$", "");
+            String key = customKeyEt.getText().toString().trim();
+            String model = customModelEt.getText().toString().trim();
+            if (url.isEmpty() || key.isEmpty() || model.isEmpty()) {
+                Toast.makeText(this, "Fill in the base URL, API key and model.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (!url.startsWith("https://")) {
+                Toast.makeText(this, "The base URL must start with https://.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Prefs.setCustomAi(this, name, url, key, model);
+            Helper.writeCustomAi(this);
+            customEdit = false;
+            Toast.makeText(this, "Custom AI saved.", Toast.LENGTH_SHORT).show();
+            acc.refresh(this);
+            render();
+        });
+        if (customEdit) secondary("Cancel", v -> {
+            customEdit = false;
+            render();
+        });
+    }
+
+    private EditText customField(String label, String hint, boolean password, String value) {
+        TextView l = text(this, label, 13, MUTED);
+        l.setPadding(0, dp(this, 14), 0, 0);
+        body.addView(l);
+        EditText et = new EditText(this);
+        et.setHint(hint);
+        et.setHintTextColor(MUTED);
+        et.setTextColor(TEXT);
+        et.setTypeface(mono(this, 400));
+        et.setTextSize(14);
+        if (password) et.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+                | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        else et.setSingleLine(true);
+        et.setText(value);
+        et.setPadding(dp(this, 12), dp(this, 10), dp(this, 12), dp(this, 10));
+        et.setBackground(outlined(this, BG, 12, OUTLINE, 1));
+        LinearLayout.LayoutParams p = full();
+        p.topMargin = dp(this, 6);
+        body.addView(et, p);
+        return et;
+    }
+
+    /** Custom AI is configured: summary (never the key), edit and remove. */
+    private void customReady() {
+        String name = Prefs.customName(this);
+        header(R.drawable.ms_check, "Custom AI is ready",
+                (name.isEmpty() ? "Your endpoint" : name) + " · " + Prefs.customModel(this), true);
+        note("Endpoint: " + Prefs.customUrl(this) + "\nThe API key is stored on this phone only.");
+        versionNote();
+        primary("Done", v -> finish());
+        updateButton();
+        secondary("Edit endpoint", v -> {
+            customEdit = true;
+            render();
+        });
+        secondary("Remove Custom AI", v -> confirmSheet(this, "Remove Custom AI?",
+                "Forgets the endpoint and API key. Chats that used it keep their history.", "Remove", true,
+                () -> acc.logout(this)));
     }
 
     /** OpenCode is installed: nothing to sign in to. Providers are connected with `opencode auth login` in the terminal. */

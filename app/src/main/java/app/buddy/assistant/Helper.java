@@ -20,6 +20,7 @@ final class Helper {
             // asset, path inside Linux, mode
             {"linux/buddy-run", "/root/bin/buddy-run", "700"},
             {"linux/mrai-ai.py", "/root/bin/mrai-ai.py", "700"},
+            {"linux/custom-ai.py", "/root/bin/custom-ai.py", "700"},
             {"linux/profile.sh", "/etc/profile.d/buddy.sh", "644"},
             {"linux/arecord", "/usr/local/bin/arecord", "755"},
             {"linux/asound-cards", "/etc/buddy/asound-cards", "644"},
@@ -56,6 +57,8 @@ final class Helper {
             try {
                 sync(app);
                 writePermissions(app);
+                // Custom AI's endpoint config must be fresh in Linux before its backend runs
+                if (args.length >= 3 && "ask".equals(args[0]) && "custom".equals(args[2])) writeCustomAi(app);
                 Process p = Linux.builder(app, cmd).start();
                 p.getOutputStream().close();
                 // the helper reports through the local server; its own output is only kept for debugging
@@ -70,6 +73,32 @@ final class Helper {
                 android.util.Log.w("Buddy", "helper failed", e);
             }
         });
+    }
+
+    /** Writes the Custom AI endpoint config into Linux (mode 600) so buddy-run's
+     * custom backend can use it without the key ever touching a command line. */
+    static void writeCustomAi(Context c) {
+        org.json.JSONObject j = new org.json.JSONObject();
+        try {
+            j.put("name", Prefs.customName(c));
+            j.put("base_url", Prefs.customUrl(c));
+            j.put("api_key", Prefs.customKey(c));
+            j.put("model", Prefs.customModel(c));
+        } catch (Exception ignored) {
+        }
+        File f = new File(Linux.root(c), "root/.buddy/custom-ai.json");
+        try {
+            f.getParentFile().mkdirs();
+            try (OutputStream o = new FileOutputStream(f)) {
+                o.write(j.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            }
+            try {
+                Os.chmod(f.getPath(), 0600);
+            } catch (Exception ignored) {
+            }
+        } catch (IOException e) {
+            android.util.Log.w("Buddy", "custom-ai config not written", e);
+        }
     }
 
     /** The user's App permissions choices, which buddy-run appends to the agent's instructions. */

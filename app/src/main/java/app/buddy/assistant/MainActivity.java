@@ -273,7 +273,9 @@ public class MainActivity extends Screen implements ChatHub.Listener, Account.Li
             String[] a = {acc.agent, acc.name(), acc.tagline()};
             // agents that aren't set up are greyed out; tapping one opens its setup instead of a chat
             boolean ready = SetupState.signedIn(this, acc.agent);
-            if (!ready) a[2] = SetupState.installed(this, acc.agent) ? "Not signed in · tap to set up" : "Not installed · tap to set up";
+            if (!ready) a[2] = SetupState.installed(this, acc.agent)
+                    ? (acc.custom() ? "Not configured · tap to set up" : "Not signed in · tap to set up")
+                    : "Not installed · tap to set up";
             LinearLayout r = row(this);
             r.setPadding(dp(this, 4), dp(this, 12), dp(this, 4), dp(this, 12));
             r.setBackgroundResource(ripple(this, false));

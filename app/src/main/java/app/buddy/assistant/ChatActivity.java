@@ -356,9 +356,12 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
         LinearLayout other = row(this);
         other.setPadding(0, dp(this, 10), 0, 0);
         final EditText et = new EditText(this);
+        String customHint = Prefs.customModel(this);
+        if (customHint.isEmpty()) customHint = "your configured model";
         et.setHint("other… e.g. " + ("claude".equals(ses.backend) ? "claude-opus-5-5"
                 : "opencode".equals(ses.backend) ? "anthropic/claude-sonnet-5-5"
-                : "mrai".equals(ses.backend) ? "auto (chain picks)" : "gpt-6.1-sol"));
+                : "mrai".equals(ses.backend) ? "auto (chain picks)"
+                : "custom".equals(ses.backend) ? customHint : "gpt-6.1-sol"));
         et.setHintTextColor(MUTED);
         et.setTextColor(TEXT);
         et.setTextSize(14);

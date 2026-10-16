@@ -226,6 +226,40 @@ final class Prefs {
         sp(c).edit().putString("opencode_models", json).apply();
     }
 
+    /** Custom AI ("bring your own AI"): provider label, OpenAI-compatible base URL,
+     * API key and model. Stored in the app's private prefs (MODE_PRIVATE); the key
+     * is never logged and never leaves the device except to the configured endpoint. */
+    static String customName(Context c) {
+        return sp(c).getString("custom_name", "");
+    }
+
+    static String customUrl(Context c) {
+        return sp(c).getString("custom_url", "");
+    }
+
+    static String customKey(Context c) {
+        return sp(c).getString("custom_key", "");
+    }
+
+    static String customModel(Context c) {
+        return sp(c).getString("custom_model", "");
+    }
+
+    static void setCustomAi(Context c, String name, String url, String key, String model) {
+        sp(c).edit().putString("custom_name", name).putString("custom_url", url)
+                .putString("custom_key", key).putString("custom_model", model).apply();
+    }
+
+    static void clearCustomAi(Context c) {
+        sp(c).edit().remove("custom_name").remove("custom_url")
+                .remove("custom_key").remove("custom_model").apply();
+    }
+
+    /** Custom AI is usable when endpoint, key and model are all set. */
+    static boolean customConfigured(Context c) {
+        return !customUrl(c).isEmpty() && !customKey(c).isEmpty() && !customModel(c).isEmpty();
+    }
+
     /** First-run guide finished (or skipped). */
     static boolean onboarded(Context c) {
         return sp(c).getBoolean("onboarded", false);

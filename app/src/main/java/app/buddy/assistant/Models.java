@@ -26,12 +26,17 @@ final class Models {
     static final String[][] MRAI = {
             {"", "Default"},
     };
+    /** Custom AI has no model picker either: the model comes from your endpoint config. */
+    static final String[][] CUSTOM = {
+            {"", "Default"},
+    };
     private static String[][] codexLive, opencodeLive;
 
     private Models() {
     }
 
     static String[][] forBackend(String backend) {
+        if ("custom".equals(backend)) return CUSTOM;
         if ("mrai".equals(backend)) return MRAI;
         if ("opencode".equals(backend)) return opencodeLive != null ? opencodeLive : OPENCODE;
         if (!"codex".equals(backend)) return CLAUDE;

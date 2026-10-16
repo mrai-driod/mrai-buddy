@@ -34,20 +34,21 @@ final class Account {
     static final Account CODEX = new Account("codex");
     static final Account OPENCODE = new Account("opencode");
     static final Account MRAI = new Account("mrai");
-    static final Account[] ALL = {CLAUDE, CODEX, OPENCODE, MRAI};
+    static final Account CUSTOM = new Account("custom");
+    static final Account[] ALL = {CLAUDE, CODEX, OPENCODE, MRAI, CUSTOM};
 
     static Account of(String agent) {
-        return "mrai".equals(agent) ? MRAI : "codex".equals(agent) ? CODEX : "opencode".equals(agent) ? OPENCODE : CLAUDE;
+        return "custom".equals(agent) ? CUSTOM : "mrai".equals(agent) ? MRAI : "codex".equals(agent) ? CODEX : "opencode".equals(agent) ? OPENCODE : CLAUDE;
     }
 
-    /** The agent's display name: "Claude Code", "Codex", "OpenCode" or "Mrai AI". */
+    /** The agent's display name: "Claude Code", "Codex", "OpenCode", "Mrai AI" or "Custom AI". */
     static String nameOf(String agent) {
         return of(agent).name();
     }
 
-    /** Its command-line name, shown in mono labels: "claude-code", "codex", "opencode" or "mrai-ai". */
+    /** Its command-line name, shown in mono labels: "claude-code", "codex", "opencode", "mrai-ai" or "custom-ai". */
     static String cliOf(String agent) {
-        return "mrai".equals(agent) ? "mrai-ai"
+        return "custom".equals(agent) ? "custom-ai" : "mrai".equals(agent) ? "mrai-ai"
                 : "codex".equals(agent) ? "codex" : "opencode".equals(agent) ? "opencode" : "claude-code";
     }
 
@@ -86,17 +87,22 @@ final class Account {
         return "mrai".equals(agent);
     }
 
+    boolean custom() {
+        return "custom".equals(agent);
+    }
+
     boolean opencode() {
         return "opencode".equals(agent);
     }
 
     String name() {
-        return claude() ? "Claude Code" : mrai() ? "Mrai AI" : opencode() ? "OpenCode" : "Codex";
+        return claude() ? "Claude Code" : custom() ? "Custom AI" : mrai() ? "Mrai AI" : opencode() ? "OpenCode" : "Codex";
     }
 
     /** One line on what the agent runs on, for pickers. */
     String tagline() {
         return claude() ? "Uses your Claude plan"
+                : custom() ? "Your endpoint · your key"
                 : mrai() ? "Free and keyless · tries several providers"
                 : opencode() ? "Free models, or your own providers" : "Uses your ChatGPT plan";
     }
@@ -169,6 +175,21 @@ final class Account {
                         plan = "keyless";
                         set(Step.SIGNED_IN, "");
                     }
+                } else if (custom()) {
+                    // bring-your-own-AI: ready when the script and python3 are in place AND the
+                    // endpoint + key + model are configured. No network probe here (kept cheap);
+                    // a bad key surfaces as a readable chat error, never in logs.
+                    String out = Linux.exec(app, "command -v python3 >/dev/null || { echo NOTINSTALLED; exit 0; }; "
+                            + "[ -f /root/bin/custom-ai.py ] || { echo NOTINSTALLED; exit 0; }; echo CUSTOM_OK", 60);
+                    if (out.contains("NOTINSTALLED")) {
+                        set(Step.NEED_INSTALL, "");
+                    } else if (Prefs.customConfigured(app)) {
+                        email = "";
+                        plan = Prefs.customModel(app);
+                        set(Step.SIGNED_IN, "");
+                    } else {
+                        set(Step.SIGNED_OUT, "");
+                    }
                 } else if (opencode()) {
                     // no sign-in needed: installed means ready. Connected providers (if any) are shown as the plan.
                     // 1.x keeps connected providers in auth.json; 2 in its database (it imports auth.json on upgrade)
@@ -234,7 +255,7 @@ final class Account {
                     set(Step.INSTALLING, "Installing tools…");
                     String o = Linux.exec(app, "apk update -q && apk add -q bash curl jq libgcc libstdc++ ripgrep git "
                             + "ca-certificates procps coreutils findutils" + (claude() ? "" : " nodejs npm")
-                            + (mrai() ? " python3" : "")
+                            + ((mrai() || custom()) ? " python3" : "")
                             + " && echo TOOLS_OK", 900);
                     if (!o.contains("TOOLS_OK")) throw new IOException(tail(o));
                 }
@@ -247,6 +268,12 @@ final class Account {
                     set(Step.INSTALLING, "Checking Mrai AI…");
                     // the script itself ships with the app (Helper.sync); nothing to download
                     String o = Linux.exec(app, "command -v python3 >/dev/null && [ -f /root/bin/mrai-ai.py ]"
+                            + " && echo AGENT_OK", 60);
+                    if (!o.contains("AGENT_OK")) throw new IOException(tail(o));
+                } else if (custom()) {
+                    set(Step.INSTALLING, "Checking Custom AI…");
+                    // the script itself ships with the app (Helper.sync); nothing to download
+                    String o = Linux.exec(app, "command -v python3 >/dev/null && [ -f /root/bin/custom-ai.py ]"
                             + " && echo AGENT_OK", 60);
                     if (!o.contains("AGENT_OK")) throw new IOException(tail(o));
                 } else if (opencode()) {
@@ -303,9 +330,9 @@ final class Account {
         updateNote = "";
         set(Step.INSTALLING, toV2 ? "Downloading OpenCode 2…" : "Checking for a new " + name() + "…");
         new Thread(() -> {
-            if (mrai()) {
-                // the chain ships with the app and updates with it — nothing to fetch
-                updateNote = "Mrai AI ships with the app and updates with it — nothing to do.";
+            if (mrai() || custom()) {
+                // both ship with the app and update with it — nothing to fetch
+                updateNote = name() + " ships with the app and updates with it — nothing to do.";
                 updating = false;
                 set(Step.CHECKING, "");
                 refresh(app);
@@ -353,7 +380,7 @@ final class Account {
     /** remote = sign in on another device: Codex uses its device code; Claude shows its link to open elsewhere. */
     void startLogin(Context c, boolean onOtherDevice) {
         app = c.getApplicationContext();
-        if (busy() || opencode() || mrai()) return; // OpenCode/Mrai AI: no sign-in (keyless)
+        if (busy() || opencode() || mrai() || custom()) return; // OpenCode/Mrai AI/Custom AI: no sign-in
         final Context app = c.getApplicationContext();
         url = null;
         state = null;
@@ -452,7 +479,16 @@ final class Account {
         final Context app = c.getApplicationContext();
         new Thread(() -> {
             try {
-                if (!opencode() && !mrai()) Linux.exec(app, claude() ? "claude auth logout" : "codex logout", 60);
+                if (custom()) {
+                    // "sign out" of Custom AI = forget the endpoint and key
+                    Prefs.clearCustomAi(app);
+                    try {
+                        new java.io.File(Linux.root(app), "root/.buddy/custom-ai.json").delete();
+                    } catch (Exception ignored) {
+                    }
+                } else if (!opencode() && !mrai()) {
+                    Linux.exec(app, claude() ? "claude auth logout" : "codex logout", 60);
+                }
             } catch (Exception ignored) {
             }
             refresh(app);

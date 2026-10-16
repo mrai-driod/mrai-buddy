@@ -41,7 +41,7 @@ public final class Updates extends BroadcastReceiver {
     // TODO: create https://github.com/mrai/mrai-buddy and publish releases there; the updater must never
     // check the original author's repo (github.com/ghorbelhamdi/buddy-android) for updates.
     static final String OUR_UPDATE_REPO = "https://github.com/mrai/mrai-buddy";
-    static final String MANUAL = "You can also get it at " + OUR_UPDATE_REPO + "/releases/latest (buddy.apk), or with Obtainium "
+    static final String MANUAL = "You can also get it at " + OUR_UPDATE_REPO + "/releases/latest (mrai-buddy.apk), or with Obtainium "
             + "for automatic updates (see " + OUR_UPDATE_REPO + "#updating).";
     private static final String API = "https://api.github.com/repos/mrai/mrai-buddy/releases/latest";
     private static final String CHANNEL = "updates", ACTION_MUTE = "com.mrai.buddy.MUTE_UPDATES";
@@ -71,7 +71,7 @@ public final class Updates extends BroadcastReceiver {
         for (int i = 0; assets != null && i < assets.length(); i++) {
             JSONObject a = assets.getJSONObject(i);
             String url = a.optString("browser_download_url");
-            if ("buddy.apk".equals(a.optString("name")) && url.startsWith(OUR_UPDATE_REPO + "/releases/download/")) apk = url;
+            if ("mrai-buddy.apk".equals(a.optString("name")) && url.startsWith(OUR_UPDATE_REPO + "/releases/download/")) apk = url;
         }
         String notes = rel.optString("body").trim();
         if (notes.length() > 1200) notes = notes.substring(0, 1200) + "…";
@@ -82,11 +82,11 @@ public final class Updates extends BroadcastReceiver {
     static final String OPENED = "opened", NEEDS_PERMISSION = "permission";
 
     /**
-     * Downloads the release's buddy.apk, checks it's a newer Buddy, and opens Android's installer (network: off the
+     * Downloads the release's mrai-buddy.apk, checks it's a newer Buddy, and opens Android's installer (network: off the
      * main thread). Returns OPENED, NEEDS_PERMISSION, or what went wrong.
      */
     static String install(Context c, Release r) {
-        if (r.apkUrl == null) return "The release has no buddy.apk yet.";
+        if (r.apkUrl == null) return "The release has no mrai-buddy.apk yet.";
         File out = FilesProvider.apkFile(c);
         try {
             HttpURLConnection h = (HttpURLConnection) new URL(r.apkUrl).openConnection();

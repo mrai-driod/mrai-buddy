@@ -42,14 +42,14 @@ jobs:
         run: |
           mkdir -p dist
           apk=$(find app/build/outputs/apk/github/release -name '*.apk' | head -1)
-          cp "$apk" "dist/buddy-${GITHUB_REF_NAME//\//-}.apk"
-          # fixed name too, so releases/latest/download/buddy.apk always gets the newest version
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then cp "$apk" dist/buddy.apk; fi
+          cp "$apk" "dist/mrai-buddy-${GITHUB_REF_NAME//\//-}.apk"
+          # fixed name too, so releases/latest/download/mrai-buddy.apk always gets the newest version
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then cp "$apk" dist/mrai-buddy.apk; fi
           ls -l dist
 
       - uses: actions/upload-artifact@v7
         with:
-          name: buddy-apk
+          name: mrai-buddy-apk
           path: dist/*.apk
 
       # The Play bundle is uploaded to the Play Console by hand; it's never attached to the GitHub release.
@@ -67,5 +67,5 @@ jobs:
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" dist/*.apk --clobber
           else
-            gh release create "$GITHUB_REF_NAME" dist/*.apk --title "Buddy $GITHUB_REF_NAME" --generate-notes
+            gh release create "$GITHUB_REF_NAME" dist/*.apk --title "Mrai Buddy $GITHUB_REF_NAME" --generate-notes
           fi

@@ -1,11 +1,11 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # Builds a signed release APK on-device with aapt2 + javac + d8 + apksigner.
-# Output: build/buddy-release.apk
+# Output: build/mrai-buddy-release.apk
 set -euo pipefail
 cd "$(dirname "$0")"
 
 SDK_JAR=${SDK_JAR:-$HOME/android-sdk/android-36/android.jar}
-KEYSTORE=${KEYSTORE:-$HOME/.buddy-keys/release.jks}
+KEYSTORE=${KEYSTORE:-$HOME/.mrai-buddy-keys/release.jks}
 PACKAGE=com.mrai.buddy
 INFO=app/src/main/java/app/buddy/assistant/BuildInfo.java
 VERSION_NAME=$(sed -n 's/.*VERSION = "\(.*\)";/\1/p' "$INFO")
@@ -60,13 +60,13 @@ if [ ! -f "$KEYSTORE" ]; then
   PASS=$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 24)
   printf '%s' "$PASS" > "$(dirname "$KEYSTORE")/password"
   chmod 600 "$(dirname "$KEYSTORE")/password"
-  keytool -genkeypair -keystore "$KEYSTORE" -alias buddy -keyalg RSA -keysize 4096 -validity 10000 \
-    -storepass "$PASS" -keypass "$PASS" -dname "CN=Buddy, O=Personal" >/dev/null 2>&1
+  keytool -genkeypair -keystore "$KEYSTORE" -alias mrai-buddy -keyalg RSA -keysize 4096 -validity 10000 \
+    -storepass "$PASS" -keypass "$PASS" -dname "CN=Mrai Buddy, O=Mrai" >/dev/null 2>&1
 fi
-apksigner sign --ks "$KEYSTORE" --ks-key-alias buddy \
+apksigner sign --ks "$KEYSTORE" --ks-key-alias mrai-buddy \
   --ks-pass "file:$(dirname "$KEYSTORE")/password" \
-  --out "$OUT/buddy-release.apk" "$OUT/aligned.apk"
-apksigner verify "$OUT/buddy-release.apk"
+  --out "$OUT/mrai-buddy-release.apk" "$OUT/aligned.apk"
+apksigner verify "$OUT/mrai-buddy-release.apk"
 
-ls -l "$OUT/buddy-release.apk"
-echo "Built $OUT/buddy-release.apk (version $VERSION_NAME, code $VERSION_CODE)"
+ls -l "$OUT/mrai-buddy-release.apk"
+echo "Built $OUT/mrai-buddy-release.apk (version $VERSION_NAME, code $VERSION_CODE)"

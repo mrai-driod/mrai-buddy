@@ -5,7 +5,7 @@ description: Create, build, install and update a small Android app (APK) directl
 
 # Building Android apps on this phone
 
-Everything runs in Buddy's built-in Linux (Alpine) on the phone. There is no Gradle and no Android Studio. Use plain Java and the Android framework only (no AndroidX, no Kotlin, no external libraries).
+Everything runs in Mrai Buddy's built-in Linux (Alpine) on the phone. There is no Gradle and no Android Studio. Use plain Java and the Android framework only (no AndroidX, no Kotlin, no external libraries).
 
 The scripts live next to this file. `SKILL_DIR` below means this skill's folder:
 `$HOME/.buddy/work/.claude/skills/android-app`.

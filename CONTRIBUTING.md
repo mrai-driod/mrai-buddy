@@ -1,12 +1,12 @@
-# Contributing to Buddy
+# Contributing to Mrai Buddy
 
 Thanks for helping. Bug reports, ideas and pull requests are all welcome.
 
 ## Reporting a bug
 
-Open an [issue](https://github.com/ghorbelhamdi/buddy-android/issues/new/choose) with the bug form. The most useful details are your phone and Android version, the agent and model (Claude Code, Codex or OpenCode), what you asked, and what happened instead. A screenshot of the chat (open its "N tool calls" line) usually shows where it went wrong.
+Open an [issue](https://github.com/mrai-driod/mrai-buddy/issues/new/choose) with the bug form. The most useful details are your phone and Android version, the agent and model (Mrai AI, Claude Code, Codex, OpenCode, Custom AI or Local AI), what you asked, and what happened instead. A screenshot of the chat (open its "N tool calls" line) usually shows where it went wrong.
 
-Found a way for an agent to act without your approval, or to approve for you? Please don't post it publicly: use [private vulnerability reporting](https://github.com/ghorbelhamdi/buddy-android/security/advisories/new).
+Found a way for an agent to act without your approval, or to approve for you? Please don't post it publicly: use [private vulnerability reporting](https://github.com/mrai-driod/mrai-buddy/security/advisories/new).
 
 ## Before you write code
 
@@ -22,7 +22,7 @@ There are two flavors: `github` (the full app) and `play` (without self-updates 
 
 ## Testing
 
-Buddy drives real apps, so please test on a real phone before opening a pull request:
+Mrai Buddy drives real apps, so please test on a real phone before opening a pull request:
 
 1. Install your build over the current one (same signing key) or on a clean phone.
 2. Run at least one task with an agent, for example "Open the calculator and compute 12 × 7".
@@ -40,4 +40,4 @@ Say in the pull request what you tested and on which phone.
 
 ## License
 
-Buddy is [Apache-2.0](LICENSE). By opening a pull request you agree that your contribution is released under the same license.
+Mrai Buddy is [Apache-2.0](LICENSE). By opening a pull request you agree that your contribution is released under the same license.

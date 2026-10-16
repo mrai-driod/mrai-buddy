@@ -1,6 +1,6 @@
 # Third-party components
 
-Buddy's built-in Linux runs through **proot**, which ships inside the APK as native libraries
+Mrai Buddy's built-in Linux runs through **proot**, which ships inside the APK as native libraries
 (`app/src/main/jniLibs/arm64-v8a/`, copied from Termux's aarch64 packages; renamed to `lib*.so` so
 Android extracts them, and with their library search paths adjusted with `patchelf`).
 

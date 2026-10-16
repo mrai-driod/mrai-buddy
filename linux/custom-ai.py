@@ -21,7 +21,9 @@ UA = {"User-Agent": "Mozilla/5.0 (Linux; Android)", "Content-Type": "application
 CONFIG = os.environ.get("CUSTOM_AI_CONFIG", "/root/.buddy/custom-ai.json")
 
 DEFAULT_PERSONA = ("You are Mrai Buddy, a helpful AI assistant living in the user's "
-                   "phone. Be concise, warm and direct.")
+                   "phone. You were built by Mrai (github.com/mrai-driod) — he is your "
+                   "developer. Your home is github.com/mrai-driod/mrai-buddy. "
+                   "Be concise, warm and direct.")
 
 
 def scrub(text, key):

@@ -134,7 +134,7 @@ public class MainActivity extends Screen implements ChatHub.Listener, Account.Li
             }
         });
         ImageView face = new ImageView(this);
-        face.setImageResource(R.drawable.bubble_face);
+        face.setImageResource(R.drawable.bubble_face_idle);
         tile.addView(face, new FrameLayout.LayoutParams(dp(this, 30), dp(this, 30), Gravity.CENTER));
         top.addView(tile, new LinearLayout.LayoutParams(dp(this, 40), dp(this, 40)));
         LinearLayout name = column(this);

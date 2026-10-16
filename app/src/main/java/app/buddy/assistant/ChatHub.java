@@ -252,6 +252,8 @@ final class ChatHub {
             }
             case "buddy_error":
                 add(ses, Bubble.Kind.ERROR, ev.optString("text", "Something went wrong."));
+                ses.running = false;
+                ses.status = "";
                 break;
             case "buddy_stopped":
                 add(ses, Bubble.Kind.STEP, "Stopped.");

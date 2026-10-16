@@ -34,18 +34,22 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.request
 
 MCP_URL = "http://127.0.0.1:8765/mcp"
 MCP_TIMEOUT = 20          # per tool call — tight, keeps it snappy
 RUNG_TIMEOUT = 30
 MAX_STEPS = 15
+AGENT_DEADLINE = 150  # total seconds — bails before the app's 180s give-up
 HISTORY_KEEP = 30
 UA = {"User-Agent": "Mozilla/5.0 (Linux; Android)", "Content-Type": "application/json"}
 MRAI_CHAIN = os.environ.get("MRAI_CHAIN", "/root/bin/mrai-ai.py")
 
 DEFAULT_PERSONA = ("You are Mrai Buddy, a helpful AI assistant living in the user's "
-                   "phone. Be concise, warm and direct.")
+                   "phone. You were built by Mrai (github.com/mrai-driod) — he is your "
+                   "developer. Your home is github.com/mrai-driod/mrai-buddy. "
+                   "Be concise, warm and direct.")
 
 # Functional operator instructions appended in agent mode (not personality).
 OPERATOR_BLOCK = (
@@ -178,7 +182,12 @@ def agent_loop(system_prompt, messages, mcp_token):
     convo = [{"role": "system", "content": system_prompt + OPERATOR_BLOCK}]
     convo += [m for m in messages if isinstance(m, dict) and m.get("role")][-12:]
     last_obs = ""
+    deadline = time.time() + AGENT_DEADLINE
     for step in range(MAX_STEPS):
+        if time.time() > deadline:
+            emit_progress("Out of time — stopping.")
+            return ("I ran out of time after %d steps. Last thing I saw: %s"
+                    % (step, last_obs[:300]), convo)
         msg = rung1_tools(convo, tools)
         if not msg["tool_calls"]:
             text = strip_ads(msg.get("content") or "")

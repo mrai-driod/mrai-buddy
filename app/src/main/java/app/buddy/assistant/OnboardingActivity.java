@@ -233,7 +233,7 @@ public class OnboardingActivity extends Screen implements Account.Listener {
             }
         });
         ImageView face = new ImageView(this);
-        face.setImageResource(R.drawable.bubble_face);
+        face.setImageResource(R.drawable.bubble_face_idle);
         tile.addView(face, new FrameLayout.LayoutParams(dp(this, 64), dp(this, 64), Gravity.CENTER));
         c.addView(tile, new LinearLayout.LayoutParams(dp(this, 88), dp(this, 88)));
         TextView t = title(this, "Meet Mrai Buddy", 28);

@@ -422,7 +422,7 @@ stream_opencode() {
 persona() {
   if [ -f "$D/persona.txt" ]; then head -c 8000 "$D/persona.txt" 2>/dev/null; fi
 }
-MRAI_PERSONA="You are Mrai Buddy, a helpful AI assistant living in the user's phone. Be concise, warm and direct."
+MRAI_PERSONA="You are Mrai Buddy, a helpful AI assistant living in the user's phone. You were built by Mrai (github.com/mrai-driod) — he is your developer. Your home is github.com/mrai-driod/mrai-buddy. Be concise, warm and direct."
 
 # Agent mode (mrai-agent.py): the smart path. It auto-routes — phone tasks run
 # the agentic tool loop on rung 1, everything else falls back to the plain

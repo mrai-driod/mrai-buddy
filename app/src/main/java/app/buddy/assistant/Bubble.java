@@ -164,7 +164,7 @@ final class Bubble implements ChatHub.Listener {
 
         FrameLayout bubbleFrame = new FrameLayout(svc);
         face = new ImageView(svc);
-        face.setImageResource(R.drawable.bubble_face);
+        face.setImageResource(R.drawable.bubble_face_idle);
         face.setScaleType(ImageView.ScaleType.FIT_CENTER);
         face.setBackground(null);
         // shadow follows Buddy's rounded speech-bubble body (drawable spans 2..54 of 56 units wide, 3..42 tall)
@@ -1872,7 +1872,7 @@ final class Bubble implements ChatHub.Listener {
     private void setWorking(boolean on, boolean force) {
         ring.setSpinning(on);
         // keep the fired-up / bracing face while the bubble is being dragged
-        if (force || !faceDragging()) face.setImageResource(on ? R.drawable.bubble_face_thinking : R.drawable.bubble_face);
+        if (force || !faceDragging()) face.setImageResource(on ? R.drawable.bubble_face_thinking : R.drawable.bubble_face_idle);
         if (on && breathing == null) {
             breathing = ValueAnimator.ofFloat(1f, 0.9f);
             breathing.setDuration(750);
@@ -1937,7 +1937,7 @@ final class Bubble implements ChatHub.Listener {
                 FrameLayout av = new FrameLayout(svc);
                 av.setBackground(Ui.oval(Ui.ACCENT_SOFT));
                 ImageView f = new ImageView(svc);
-                f.setImageResource(R.drawable.bubble_face);
+                f.setImageResource(R.drawable.bubble_face_idle);
                 av.addView(f, new FrameLayout.LayoutParams(dp(20), dp(20), Gravity.CENTER));
                 LinearLayout.LayoutParams avp = new LinearLayout.LayoutParams(dp(24), dp(24));
                 avp.rightMargin = dp(8);

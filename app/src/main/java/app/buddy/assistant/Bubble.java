@@ -68,6 +68,8 @@ final class Bubble implements ChatHub.Listener {
     private ImageView face;
     private TextView badge, pill;
     private ValueAnimator breathing;
+    private final android.os.Handler blinkHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private boolean blinking = false;
     private RingView ring;
     private boolean noteListening;
     // expanded
@@ -112,6 +114,7 @@ final class Bubble implements ChatHub.Listener {
         buildCollapsed();
         buildPanel();
         followKeyboard();
+        startBlinking();
         root.setOnTouchListener((v, e) -> {
             if (e.getAction() == MotionEvent.ACTION_OUTSIDE && expanded && pendingConfirm == null) {
                 // An edge swipe for Back also lands outside the panel; wait briefly so Back can cancel this.
@@ -1867,6 +1870,32 @@ final class Bubble implements ChatHub.Listener {
 
     private boolean faceDragging() {
         return dismissWindow != null && dismissWindow.getVisibility() == View.VISIBLE;
+    }
+
+    /** The Sharingan blinks when idle — a quick scaleY dip that feels alive. */
+    private final Runnable blinkTick = new Runnable() {
+        @Override public void run() {
+            if (face == null) return;
+            // only blink when idle (not thinking/working, not mid-drag)
+            boolean idle = !blinking && breathing == null && !faceDragging();
+            if (idle) {
+                blinking = true;
+                face.animate().scaleY(0.08f).setDuration(90).withEndAction(() ->
+                    face.animate().scaleY(1f).setDuration(140).withEndAction(() -> blinking = false).start()
+                ).start();
+            }
+            // next blink in 3–8s, like a real eye
+            blinkHandler.postDelayed(this, 3000 + (long) (Math.random() * 5000));
+        }
+    };
+
+    private void startBlinking() {
+        blinkHandler.removeCallbacks(blinkTick);
+        blinkHandler.postDelayed(blinkTick, 2500);
+    }
+
+    private void stopBlinking() {
+        blinkHandler.removeCallbacks(blinkTick);
     }
 
     private void setWorking(boolean on, boolean force) {

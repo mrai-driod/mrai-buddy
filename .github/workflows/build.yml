@@ -13,6 +13,12 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    env:
+      # Release-signing secrets. These MUST be job-level: a step's `if` is evaluated
+      # before that step's own step-level env is applied, so a step can never see
+      # its own step-level variables in its `if` (the decode step would be skipped forever).
+      KEYSTORE_BASE64: ${{ secrets.BUDDY_KEYSTORE_BASE64 }}
+      KEYSTORE_ALIAS: ${{ secrets.BUDDY_KEYSTORE_ALIAS }}
     steps:
       - uses: actions/checkout@v7
 
@@ -23,15 +29,14 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      # Release signing is optional: add the BUDDY_KEYSTORE_BASE64 and BUDDY_KEYSTORE_PASSWORD
+      # Release signing is optional: set the BUDDY_KEYSTORE_BASE64 (+ _PASSWORD, + _ALIAS)
       # repository secrets to get a signed APK; otherwise the APK is unsigned.
       - name: Decode signing key
-        env:
-          KEYSTORE_BASE64: ${{ secrets.BUDDY_KEYSTORE_BASE64 }}
         if: env.KEYSTORE_BASE64 != ''
         run: |
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
           echo "BUDDY_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          if [ -n "$KEYSTORE_ALIAS" ]; then echo "BUDDY_KEY_ALIAS=$KEYSTORE_ALIAS" >> "$GITHUB_ENV"; fi
 
       - name: Build release APK (GitHub) and bundle (Google Play)
         env:

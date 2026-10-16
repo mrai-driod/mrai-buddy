@@ -203,10 +203,10 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
 
         // --------------------------------------------------- assistant persona
         list.addView(sectionLabel(this, "Assistant persona"));
-        LinearLayout ap = card();
-        ap.setPadding(dp(this, 16), dp(this, 14), dp(this, 16), dp(this, 16));
-        ap.addView(title(this, "Your system prompt", 15));
-        ap.addView(text(this, "Plain mode: this replaces Mrai Buddy's default persona entirely for Mrai AI and "
+        LinearLayout pp = card();
+        pp.setPadding(dp(this, 16), dp(this, 14), dp(this, 16), dp(this, 16));
+        pp.addView(title(this, "Your system prompt", 15));
+        pp.addView(text(this, "Plain mode: this replaces Mrai Buddy's default persona entirely for Mrai AI and "
                 + "Custom AI — on every provider, never appended. Empty = the default.", 13, MUTED), topGap(2));
         final EditText personaEt = new EditText(this);
         personaEt.setText(Prefs.assistantPersona(this));
@@ -219,7 +219,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
                 | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
         personaEt.setPadding(dp(this, 12), dp(this, 10), dp(this, 12), dp(this, 10));
         personaEt.setBackground(outlined(this, BG, 12, OUTLINE, 1));
-        ap.addView(personaEt, full());
+        pp.addView(personaEt, full());
         LinearLayout prow = row(this);
         prow.setGravity(Gravity.END);
         Button personaSave = button(this, "Save", true);
@@ -229,8 +229,8 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         });
         prow.addView(personaSave,
                 new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(this, 44)));
-        ap.addView(prow, topGap(8));
-        addCard(ap);
+        pp.addView(prow, topGap(8));
+        addCard(pp);
 
         // ---------------------------------------------------------- phone tools
         list.addView(sectionLabel(this, "Phone tools in your own sessions"));

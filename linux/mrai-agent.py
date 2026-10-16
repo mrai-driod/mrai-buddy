@@ -183,16 +183,33 @@ def agent_loop(system_prompt, messages, mcp_token):
     convo += [m for m in messages if isinstance(m, dict) and m.get("role")][-12:]
     last_obs = ""
     deadline = time.time() + AGENT_DEADLINE
+    nudges = 0
     for step in range(MAX_STEPS):
         if time.time() > deadline:
             emit_progress("Out of time — stopping.")
-            return ("I ran out of time after %d steps. Last thing I saw: %s"
+            return ("Stopped: time budget exhausted after %d steps. Last thing I saw: %s"
                     % (step, last_obs[:300]), convo)
-        msg = rung1_tools(convo, tools)
+        try:
+            msg = rung1_tools(convo, tools)
+        except Exception as e:
+            # Model call failed — tell the user why, don't go silent.
+            return ("Stopped: the model didn't respond (%s). Try again in a moment."
+                    % type(e).__name__, convo)
         if not msg["tool_calls"]:
             text = strip_ads(msg.get("content") or "")
-            convo.append({"role": "assistant", "content": text})
-            return (text or "Done.", convo)
+            if text:
+                convo.append({"role": "assistant", "content": text})
+                return (text, convo)
+            # Weak-model failure: no tools AND no text. Nudge it back (max 3).
+            nudges += 1
+            if nudges > 3:
+                return ("Stopped: the model went quiet after %d steps without acting. "
+                        "Last thing I saw: %s" % (step, last_obs[:300]), convo)
+            emit_progress("Nudging the model…")
+            convo.append({"role": "user", "content":
+                "You haven't used any tools yet. This task needs phone actions — "
+                "call read_screen first to see the screen, then act with the tools."})
+            continue
         convo.append({"role": "assistant", "content": msg.get("content"),
                       "tool_calls": msg["tool_calls"]})
         for tc in msg["tool_calls"]:
@@ -220,6 +237,11 @@ def agent_loop(system_prompt, messages, mcp_token):
             last_obs = obs
             convo.append({"role": "tool", "tool_call_id": tc.get("id") if isinstance(tc, dict) else "",
                           "content": obs})
+        # 3 steps left: warn the model so it wraps up instead of starting something new.
+        if step == MAX_STEPS - 3:
+            convo.append({"role": "user", "content":
+                "3 steps remaining. If the task is done, say so briefly. Otherwise "
+                "take the single most important next action."})
     return ("I took %d steps and didn't finish. Last thing I saw: %s"
             % (MAX_STEPS, last_obs[:300]), convo)
 

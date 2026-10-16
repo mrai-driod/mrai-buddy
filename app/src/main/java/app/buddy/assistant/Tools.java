@@ -133,6 +133,19 @@ final class Tools {
                             .put("timeout_s", intProp("Default 120, max 300")),
                     "package"));
         }
+        // Private browser: the agent browses silently to inform its answer.
+        // Results stay in the agent's context; only mention them if the user asks.
+        t.put(tool("web_search",
+                "Search the web for current information. Use this when the user asks about news, prices, "
+                        + "or anything that might have changed since your training. Returns titles, URLs and snippets. "
+                        + "Private: the user doesn't see the search, only your informed answer.",
+                props().put("query", strProp("What to search for")),
+                "query"));
+        t.put(tool("web_fetch",
+                "Fetch a web page and return its text content (up to ~4000 chars). Use after web_search "
+                        + "to read a promising result in full. Private: the user doesn't see the fetch.",
+                props().put("url", strProp("Full URL to fetch")),
+                "url"));
         return t;
     }
 
@@ -241,6 +254,8 @@ final class Tools {
                 svc.showStatus(a.getString("text"));
                 return text("Shown.");
             }
+            case "web_search": return text(webSearch(a.getString("query")));
+            case "web_fetch": return text(webFetch(a.getString("url")));
             default:
                 throw new IllegalArgumentException("Unknown tool " + name);
         }
@@ -830,5 +845,83 @@ final class Tools {
                 .put(new JSONObject().put("type", "image").put("mimeType", "image/jpeg")
                         .put("data", Base64.encodeToString(jpg.toByteArray(), Base64.NO_WRAP)))
                 .put(new JSONObject().put("type", "text").put("text", note)));
+    }
+
+    // ------------------------------------------------------- private browser
+
+    /** Web search via DuckDuckGo HTML (no key). Returns titles, URLs, snippets. */
+    private String webSearch(String query) {
+        try {
+            String url = "https://html.duckduckgo.com/html/?q=" + java.net.URLEncoder.encode(query, "UTF-8");
+            String html = fetchUrl(url, 15000);
+            StringBuilder out = new StringBuilder();
+            // crude parse: result__a links and result__snippet divs
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile(
+                    "result__a[^>]*href="([^"]+)"[^>]*>(.*?)</a>", java.util.regex.Pattern.DOTALL).matcher(html);
+            java.util.regex.Matcher s = java.util.regex.Pattern.compile(
+                    "result__snippet[^>]*>(.*?)</", java.util.regex.Pattern.DOTALL).matcher(html);
+            int n = 0;
+            while (m.find() && n < 5) {
+                String link = m.group(1).replaceAll("&amp;", "&");
+                String title = stripTags(m.group(2)).trim();
+                String snippet = s.find() ? stripTags(s.group(1)).trim() : "";
+                // DuckDuckGo wraps URLs in a redirect; extract the real one
+                if (link.contains("uddg=")) {
+                    int i = link.indexOf("uddg=") + 5;
+                    int j = link.indexOf('&', i);
+                    link = java.net.URLDecoder.decode(j < 0 ? link.substring(i) : link.substring(i, j), "UTF-8");
+                }
+                out.append(n + 1).append(". ").append(title).append("\n   ").append(link).append("\n");
+                if (!snippet.isEmpty()) out.append("   ").append(clip(snippet, 200)).append("\n");
+                n++;
+            }
+            return n == 0 ? "No results." : out.toString().trim();
+        } catch (Exception e) {
+            return "Search failed: " + e.getMessage();
+        }
+    }
+
+    /** Fetch a URL and return visible text (up to ~4000 chars). */
+    private String webFetch(String url) {
+        try {
+            String html = fetchUrl(url, 20000);
+            String text = stripTags(html);
+            // collapse whitespace
+            text = text.replaceAll("[ \\t\\x0B\\f\\r]+", " ").replaceAll("\\n(\\s*\\n)+", "\\n\\n").trim();
+            return text.length() > 4000 ? text.substring(0, 4000) + "…" : text;
+        } catch (Exception e) {
+            return "Fetch failed: " + e.getMessage();
+        }
+    }
+
+    private String fetchUrl(String url, int timeoutMs) throws Exception {
+        java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+        c.setConnectTimeout(timeoutMs);
+        c.setReadTimeout(timeoutMs);
+        c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android) MraiBuddy/1.0");
+        c.setInstanceFollowRedirects(true);
+        int code = c.getResponseCode();
+        if (code < 200 || code >= 300) throw new IllegalStateException("HTTP " + code);
+        java.io.InputStream in = c.getInputStream();
+        java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
+        byte[] tmp = new byte[8192];
+        int r, total = 0;
+        while ((r = in.read(tmp)) > 0 && total < 200000) { buf.write(tmp, 0, r); total += r; }
+        in.close();
+        String enc = c.getContentEncoding();
+        return buf.toString(enc != null ? enc : "UTF-8");
+    }
+
+    private String stripTags(String html) {
+        // remove scripts, styles, then tags
+        String t = html.replaceAll("(?is)<(script|style)[^>]*>.*?</\\1>", " ");
+        t = t.replaceAll("<[^>]+>", " ");
+        t = t.replaceAll("&nbsp;", " ").replaceAll("&amp;", "&").replaceAll("&lt;", "<")
+                .replaceAll("&gt;", ">").replaceAll("&quot;", "\"").replaceAll("&#39;", "'");
+        return t;
+    }
+
+    private String clip(CharSequence s, int max) {
+        return s.length() <= max ? s.toString() : s.subSequence(0, max) + "…";
     }
 }

@@ -188,7 +188,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         brainInfo.setPadding(0, dp(this, 2), 0, 0);
         ag.addView(brainInfo);
         ag.addView(segmented(this, new String[][]{{"claude", "Claude Code"}, {"codex", "Codex"}, {"opencode", "OpenCode"},
-                {"mrai", "Mrai AI"}, {"custom", "Custom AI"}},
+                {"mrai", "Mrai AI"}, {"custom", "Custom AI"}, {"local", "Local AI"}},
                 backend, false, v -> {
                     Prefs.setBackend(this, v);
                     Toast.makeText(this, "New chats will use " + Account.nameOf(v)
@@ -865,7 +865,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         String st = Prefs.agentState(this, agent);
         boolean busy = a.step == Account.Step.INSTALLING;
         String state = busy ? "installing…" : !Linux.installed(this) || st == null || "NEED_INSTALL".equals(st) ? "not installed"
-                : (a.opencode() || a.mrai()) ? "ready" + (a.plan.isEmpty() ? "" : " · " + a.plan)
+                : (a.opencode() || a.mrai() || a.local()) ? "ready" + (a.plan.isEmpty() ? "" : " · " + a.plan)
                 : a.custom() ? ("SIGNED_IN".equals(st) ? "configured" + (a.plan.isEmpty() ? "" : " · " + a.plan) : "not configured")
                 : "SIGNED_IN".equals(st) ? "signed in" + (a.email.isEmpty() ? "" : " · " + a.email) : "not signed in";
         LinearLayout r = row(this);

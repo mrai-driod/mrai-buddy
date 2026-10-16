@@ -464,6 +464,41 @@ stream_mrai() {
   return 0
 }
 
+# ------------------------------------------------------------------- Local AI
+# On-device inference: llama-server serves a sub-500MB GGUF on 127.0.0.1:8080.
+# No API, no key, no network. Private and offline. Model downloads once on WiFi.
+LOCAL_PERSONA="You are Mrai Buddy, a helpful AI assistant living in the user's phone. You were built by Mrai (github.com/mrai-driod) — he is your developer. Your home is github.com/mrai-driod/mrai-buddy. Be concise, warm and direct."
+run_local() {
+  local hist="$S/local-history.json" sys
+  [ -f "$hist" ] || echo '[]' > "$hist"
+  jq --arg m "$MSG" '.[-39:] + [{role:"user", content:$m}]' "$hist" > "$hist.new" && mv "$hist.new" "$hist"
+  sys="$(persona)"; [ -n "$sys" ] || sys="$LOCAL_PERSONA"
+  jq -cn --arg sys "$sys" --slurpfile h "$hist" '{system_prompt:$sys, messages:$h[0]}' \
+    | python3 /root/bin/local-ai.py 2>"$S/last-error.log"
+}
+
+# local-ai.py answers in one JSON line; translate it into the stream format.
+stream_local() {
+  local line kind r e h
+  while IFS= read -r line; do
+    kind=$(printf '%s' "$line" | jq -r \
+      'if has("reply") then "reply" elif has("error") then "error" else empty end' 2>/dev/null)
+    case "$kind" in
+      reply)
+        r=$(printf '%s' "$line" | jq -r '.reply')
+        h=$(printf '%s' "$line" | jq -c '.history // []')
+        printf '%s' "$h" > "$S/local-history.json"
+        jq -cn --arg t "$r" --arg s "$SID" \
+          '{type:"assistant", message:{content:[{type:"text", text:$t}]}, buddy_session:$s}' | post
+        jq -cn --arg s "$SID" '{type:"result", subtype:"success", result:"", buddy_session:$s}' | post ;;
+      error)
+        e=$(printf '%s' "$line" | jq -r '.error')
+        jq -cn --arg e "$e" --arg s "$SID" '{type:"buddy_error", text:$e, buddy_session:$s}' | post ;;
+    esac
+  done
+  return 0
+}
+
 # ------------------------------------------------------------------- Custom AI
 # Bring-your-own-AI: POSTs to the user's OpenAI-compatible endpoint (custom-ai.py).
 # The endpoint config lives in $D/custom-ai.json (mode 600, written by the app);
@@ -513,6 +548,12 @@ stream_custom() {
     run_custom | stream_custom
     status=${PIPESTATUS[0]}
     name="Custom AI"
+  elif [ "$BACKEND" = local ]; then
+    if ! have python3 || [ ! -f /root/bin/local-ai.py ]; then
+      event buddy_error "Local AI isn't installed yet. Install it in Mrai Buddy's Settings."; exit 0; fi
+    run_local | stream_local
+    status=${PIPESTATUS[0]}
+    name="Local AI"
   elif [ "$BACKEND" = opencode ]; then
     if ! have opencode; then event buddy_error "OpenCode isn't installed yet. Install it in Mrai Buddy's Settings."; exit 0; fi
     run_opencode | stream_opencode

@@ -35,10 +35,11 @@ final class Account {
     static final Account OPENCODE = new Account("opencode");
     static final Account MRAI = new Account("mrai");
     static final Account CUSTOM = new Account("custom");
-    static final Account[] ALL = {CLAUDE, CODEX, OPENCODE, MRAI, CUSTOM};
+    static final Account LOCAL = new Account("local");
+    static final Account[] ALL = {CLAUDE, CODEX, OPENCODE, MRAI, CUSTOM, LOCAL};
 
     static Account of(String agent) {
-        return "custom".equals(agent) ? CUSTOM : "mrai".equals(agent) ? MRAI : "codex".equals(agent) ? CODEX : "opencode".equals(agent) ? OPENCODE : CLAUDE;
+        return "local".equals(agent) ? LOCAL : "custom".equals(agent) ? CUSTOM : "mrai".equals(agent) ? MRAI : "codex".equals(agent) ? CODEX : "opencode".equals(agent) ? OPENCODE : CLAUDE;
     }
 
     /** The agent's display name: "Claude Code", "Codex", "OpenCode", "Mrai AI" or "Custom AI". */
@@ -91,12 +92,16 @@ final class Account {
         return "custom".equals(agent);
     }
 
+    boolean local() {
+        return "local".equals(agent);
+    }
+
     boolean opencode() {
         return "opencode".equals(agent);
     }
 
     String name() {
-        return claude() ? "Claude Code" : custom() ? "Custom AI" : mrai() ? "Mrai AI" : opencode() ? "OpenCode" : "Codex";
+        return claude() ? "Claude Code" : custom() ? "Custom AI" : mrai() ? "Mrai AI" : local() ? "Local AI" : opencode() ? "OpenCode" : "Codex";
     }
 
     /** One line on what the agent runs on, for pickers. */
@@ -190,6 +195,18 @@ final class Account {
                     } else {
                         set(Step.SIGNED_OUT, "");
                     }
+                } else if (local()) {
+                    // on-device: ready when llama-server binary + model are downloaded.
+                    // No sign-in, no key, no network. Private and offline.
+                    String out = Linux.exec(app, "[ -x ~/.mrai-buddy/bin/llama-server ] || { echo NOTINSTALLED; exit 0; }; "
+                            + "[ -f ~/.mrai-buddy/models/smollm2-360m-q4_k_m.gguf ] || { echo NOMODEL; exit 0; }; echo LOCAL_OK", 60);
+                    if (out.contains("NOTINSTALLED") || out.contains("NOMODEL")) {
+                        set(Step.NEED_INSTALL, "");
+                    } else {
+                        email = "";
+                        plan = "on-device";
+                        set(Step.SIGNED_IN, "");
+                    }
                 } else if (opencode()) {
                     // no sign-in needed: installed means ready. Connected providers (if any) are shown as the plan.
                     // 1.x keeps connected providers in auth.json; 2 in its database (it imports auth.json on upgrade)
@@ -276,6 +293,23 @@ final class Account {
                     String o = Linux.exec(app, "command -v python3 >/dev/null && [ -f /root/bin/custom-ai.py ]"
                             + " && echo AGENT_OK", 60);
                     if (!o.contains("AGENT_OK")) throw new IOException(tail(o));
+                } else if (local()) {
+                    set(Step.INSTALLING, "Downloading Local AI engine (about 15 MB)…");
+                    // llama.cpp server for Android arm64, runs inside proot
+                    String o = Linux.exec(app, "mkdir -p ~/.mrai-buddy/bin ~/.mrai-buddy/models && "
+                            + "cd ~/.mrai-buddy/bin && "
+                            + "curl -fsSL -o llama-server.tar.gz "
+                            + "https://github.com/ggml-org/llama.cpp/releases/download/b9775/llama-b9775-bin-android-arm64.tar.gz "
+                            + "&& tar -xzf llama-server.tar.gz llama-b9775-bin-android-arm64/llama-server "
+                            + "&& mv llama-b9775-bin-android-arm64/llama-server . && rm -rf llama-b9775-bin-android-arm64 llama-server.tar.gz "
+                            + "&& chmod +x llama-server && ./llama-server --version && echo ENGINE_OK", 600);
+                    if (!o.contains("ENGINE_OK")) throw new IOException(tail(o));
+                    set(Step.INSTALLING, "Downloading Local AI model (about 200 MB, one time)… Use Wi-Fi.");
+                    o = Linux.exec(app, "cd ~/.mrai-buddy/models && "
+                            + "curl -fsSL -o smollm2-360m-q4_k_m.gguf "
+                            + "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct-GGUF/resolve/main/smollm2-360m-instruct-q4_k_m.gguf "
+                            + "&& ls -lh smollm2-360m-q4_k_m.gguf && echo MODEL_OK", 1800);
+                    if (!o.contains("MODEL_OK")) throw new IOException(tail(o));
                 } else if (opencode()) {
                     set(Step.INSTALLING, "Downloading OpenCode…");
                     // OpenCode 2 (npm @opencode/cli), always a fresh install (OC_REMOVE)

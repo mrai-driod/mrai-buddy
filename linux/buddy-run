@@ -61,7 +61,7 @@ agent_of() {
 case "$CMD" in
   ping) # setup check: proves RUN_COMMAND, the helper and the callback all work
     agents=$({ have claude && echo claude; have codex && echo codex; have opencode && echo opencode
-      have python3 && [ -f /root/bin/mrai-ai.py ] && echo mrai
+      have python3 && [ -f /root/bin/mrai-agent.py ] && echo mrai
       have python3 && [ -f /root/bin/custom-ai.py ] && echo custom; } | paste -sd, -)
     # signed in = the agent's saved login exists (OpenCode works without one: its free models)
     signed=$({ [ -s "$HOME/.claude/.credentials.json" ] && echo claude; [ -s "$HOME/.codex/auth.json" ] && echo codex
@@ -414,33 +414,54 @@ stream_opencode() {
 # --------------------------------------------------------------------- Mrai AI
 # Keyless fallback chain (mrai-ai.py): no account, no CLI to install, no sign-in.
 # History is a JSON array in $S/mrai-history.json; the whole turn is one python
-# call, so stop/delete work exactly like the other backends. Mrai AI has no
-# tools and no vision: the default persona below is all it gets (tweakable here).
+# call, so stop/delete work exactly like the other backends.
+#
+# Assistant persona: the user's own system prompt (Settings → Assistant persona,
+# written to $D/persona.txt by the app) REPLACES the default below entirely.
+# Empty = default.
+persona() {
+  if [ -f "$D/persona.txt" ]; then head -c 8000 "$D/persona.txt" 2>/dev/null; fi
+}
 MRAI_PERSONA="You are Mrai Buddy, a helpful AI assistant living in the user's phone. Be concise, warm and direct."
+
+# Agent mode (mrai-agent.py): the smart path. It auto-routes — phone tasks run
+# the agentic tool loop on rung 1, everything else falls back to the plain
+# 3-rung chain inside the same script. NDJSON in, bubble stream events out.
 run_mrai() {
-  local hist="$S/mrai-history.json"
+  local hist="$S/mrai-history.json" sys
   [ -f "$hist" ] || echo '[]' > "$hist"
   jq --arg m "$MSG" '.[-39:] + [{role:"user", content:$m}]' "$hist" > "$hist.new" && mv "$hist.new" "$hist"
-  jq -cn --arg sys "$MRAI_PERSONA" --slurpfile h "$hist" '{system_prompt:$sys, messages:$h[0]}' \
-    | python3 /root/bin/mrai-ai.py 2>"$S/last-error.log"
+  sys="$(persona)"; [ -n "$sys" ] || sys="$MRAI_PERSONA"
+  jq -cn --arg sys "$sys" --arg tok "$TOKEN" --slurpfile h "$hist" \
+    '{system_prompt:$sys, messages:$h[0], mcp_token:$tok}' \
+    | python3 /root/bin/mrai-agent.py 2>"$S/last-error.log"
 }
 
-# Mrai AI answers in one JSON line; translate it into the stream format the bubble understands.
+# mrai-agent.py streams NDJSON: {"progress"} lines while working, then one
+# {"reply","history"} (or {"error"}). Progress becomes bubble text as it arrives.
 stream_mrai() {
-  local out reply err
-  out=$(cat)
-  [ -z "$out" ] && return 0 # python died; the error handler below reports last-error.log
-  reply=$(printf '%s' "$out" | jq -r '.reply // empty' 2>/dev/null)
-  err=$(printf '%s' "$out" | jq -r '.error // empty' 2>/dev/null)
-  if [ -n "$reply" ]; then
-    jq --arg r "$reply" '.[-39:] + [{role:"assistant", content:$r}]' "$S/mrai-history.json" \
-      > "$S/mrai-history.json.new" && mv "$S/mrai-history.json.new" "$S/mrai-history.json"
-    jq -cn --arg t "$reply" --arg s "$SID" \
-      '{type:"assistant", message:{content:[{type:"text", text:$t}]}, buddy_session:$s}' | post
-    jq -cn --arg s "$SID" '{type:"result", subtype:"success", result:"", buddy_session:$s}' | post
-  elif [ -n "$err" ]; then
-    jq -cn --arg e "$err" --arg s "$SID" '{type:"buddy_error", text:$e, buddy_session:$s}' | post
-  fi
+  local line kind t r e h
+  while IFS= read -r line; do
+    kind=$(printf '%s' "$line" | jq -r \
+      'if has("progress") then "progress" elif has("reply") then "reply" elif has("error") then "error" else empty end' 2>/dev/null)
+    case "$kind" in
+      progress)
+        t=$(printf '%s' "$line" | jq -r '.progress')
+        jq -cn --arg t "$t" --arg s "$SID" \
+          '{type:"assistant", message:{content:[{type:"text", text:$t}]}, buddy_session:$s}' | post ;;
+      reply)
+        r=$(printf '%s' "$line" | jq -r '.reply')
+        h=$(printf '%s' "$line" | jq -c '.history // []')
+        printf '%s' "$h" > "$S/mrai-history.json"
+        jq -cn --arg t "$r" --arg s "$SID" \
+          '{type:"assistant", message:{content:[{type:"text", text:$t}]}, buddy_session:$s}' | post
+        jq -cn --arg s "$SID" '{type:"result", subtype:"success", result:"", buddy_session:$s}' | post ;;
+      error)
+        e=$(printf '%s' "$line" | jq -r '.error')
+        jq -cn --arg e "$e" --arg s "$SID" '{type:"buddy_error", text:$e, buddy_session:$s}' | post ;;
+    esac
+  done
+  return 0
 }
 
 # ------------------------------------------------------------------- Custom AI
@@ -452,10 +473,11 @@ run_custom() {
   [ -f "$D/custom-ai.json" ] || {
     printf '{"error":"Custom AI is not configured yet — add your endpoint and key in Settings."}'
     return 0; }
-  local hist="$S/custom-history.json"
+  local hist="$S/custom-history.json" sys
   [ -f "$hist" ] || echo '[]' > "$hist"
   jq --arg m "$MSG" '.[-39:] + [{role:"user", content:$m}]' "$hist" > "$hist.new" && mv "$hist.new" "$hist"
-  jq -cn --arg sys "$CUSTOM_PERSONA" --slurpfile h "$hist" '{system_prompt:$sys, messages:$h[0]}' \
+  sys="$(persona)"; [ -n "$sys" ] || sys="$CUSTOM_PERSONA"
+  jq -cn --arg sys "$sys" --slurpfile h "$hist" '{system_prompt:$sys, messages:$h[0]}' \
     | python3 /root/bin/custom-ai.py 2>"$S/last-error.log"
 }
 
@@ -480,7 +502,7 @@ stream_custom() {
 # ------------------------------------------------------------------------ run
 (
   if [ "$BACKEND" = mrai ]; then
-    if ! have python3 || [ ! -f /root/bin/mrai-ai.py ]; then
+    if ! have python3 || [ ! -f /root/bin/mrai-agent.py ]; then
       event buddy_error "Mrai AI isn't installed yet. Install it in Mrai Buddy's Settings."; exit 0; fi
     run_mrai | stream_mrai
     status=${PIPESTATUS[0]}

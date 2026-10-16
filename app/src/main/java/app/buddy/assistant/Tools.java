@@ -205,6 +205,10 @@ final class Tools {
                 return text("Waited " + ms + " ms.");
             }
             case "confirm": {
+                if (!Guard.approvalsOn(svc)) {
+                    // plain mode: the agent's confirm is a courtesy, not a gate
+                    return text("APPROVED automatically: action approvals are off in Settings.");
+                }
                 if (Guard.autonomous(svc, svc.foregroundPkg())) {
                     // no card in an app the user trusts; not counted as approval for a tap in another app
                     return text("APPROVED automatically: the user trusts " + svc.foregroundAppName() + ", so work on "
@@ -408,6 +412,7 @@ final class Tools {
         if (Guard.offLimits(svc, hit) || (element != null && Guard.offLimits(svc, element))) {
             return "BLOCKED: that's one of Mrai Buddy's own screens. Only the user taps those.";
         }
+        if (!Guard.approvalsOn(svc)) return null; // plain mode: no approval gates, taps go through
         AccessibilityNodeInfo target = element != null ? element : hit;
         if (target == null) return null;
         String pkg = str(target.getPackageName());
@@ -491,7 +496,8 @@ final class Tools {
         if (!ok) throw new IllegalStateException("This field did not accept text.");
         String result = "Typed " + text.length() + " characters.";
         if (a.optBoolean("submit")) {
-            String blocked = "hard".equals(Guard.mode(svc, str(target.getPackageName()), null))
+            String blocked = Guard.approvalsOn(svc)
+                    && "hard".equals(Guard.mode(svc, str(target.getPackageName()), null))
                     ? guardAction("Press Enter to send", text) : null;
             if (blocked != null) return result + " Not sent: " + blocked;
             Thread.sleep(150);

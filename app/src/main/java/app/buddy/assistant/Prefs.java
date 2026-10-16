@@ -381,6 +381,26 @@ final class Prefs {
         sp(c).edit().putBoolean("guard_builtin", on).apply();
     }
 
+    /** Action approvals (the safety watcher): when on, Mrai Buddy asks before Send, Pay, Delete and
+     * other risky taps. Default OFF — plain mode: the agent just does what the user asks. */
+    static boolean actionApprovals(Context c) {
+        return sp(c).getBoolean("action_approvals", false);
+    }
+
+    static void setActionApprovals(Context c, boolean on) {
+        sp(c).edit().putBoolean("action_approvals", on).apply();
+    }
+
+    /** The user's own system prompt for Mrai AI / Custom AI. Empty = the default persona.
+     * When set, it REPLACES the default entirely — never appended. */
+    static String assistantPersona(Context c) {
+        return sp(c).getString("assistant_persona", "");
+    }
+
+    static void setAssistantPersona(Context c, String s) {
+        sp(c).edit().putString("assistant_persona", s == null ? "" : s).apply();
+    }
+
     /** The smart reviewer's harness: "same" (as the chat's agent), "claude" or "codex". */
     static String reviewer(Context c) {
         return sp(c).getString("reviewer", "same");

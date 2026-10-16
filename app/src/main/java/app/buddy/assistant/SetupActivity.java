@@ -201,6 +201,37 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         for (Account a : Account.ALL) ag.addView(agentRow(a.agent), topGap(a == Account.CLAUDE ? 12 : 4));
         addCard(ag);
 
+        // --------------------------------------------------- assistant persona
+        list.addView(sectionLabel(this, "Assistant persona"));
+        LinearLayout ap = card();
+        ap.setPadding(dp(this, 16), dp(this, 14), dp(this, 16), dp(this, 16));
+        ap.addView(title(this, "Your system prompt", 15));
+        ap.addView(text(this, "Plain mode: this replaces Mrai Buddy's default persona entirely for Mrai AI and "
+                + "Custom AI — on every provider, never appended. Empty = the default.", 13, MUTED), topGap(2));
+        final EditText personaEt = new EditText(this);
+        personaEt.setText(Prefs.assistantPersona(this));
+        personaEt.setHint("You are Mrai Buddy, …");
+        personaEt.setTextColor(TEXT);
+        personaEt.setTextSize(15);
+        personaEt.setMinLines(3);
+        personaEt.setGravity(Gravity.TOP);
+        personaEt.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+                | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        personaEt.setPadding(dp(this, 12), dp(this, 10), dp(this, 12), dp(this, 10));
+        personaEt.setBackground(outlined(this, BG, 12, OUTLINE, 1));
+        ap.addView(personaEt, full());
+        LinearLayout prow = row(this);
+        prow.setGravity(Gravity.END);
+        Button personaSave = button(this, "Save", true);
+        personaSave.setOnClickListener(v -> {
+            Prefs.setAssistantPersona(this, personaEt.getText().toString().trim());
+            Toast.makeText(this, "Persona saved.", Toast.LENGTH_SHORT).show();
+        });
+        prow.addView(personaSave,
+                new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(this, 44)));
+        ap.addView(prow, topGap(8));
+        addCard(ap);
+
         // ---------------------------------------------------------- phone tools
         list.addView(sectionLabel(this, "Phone tools in your own sessions"));
         LinearLayout mcp = card();
@@ -444,16 +475,20 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
             ex.addView(upd, full());
             ex.addView(divider(), lineParams());
         }
-        LinearLayout perms = listRow(this);
-        perms.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout pt = column(this);
-        pt.addView(title(this, "App permissions", 15));
-        pt.addView(text(this, "Choose per app: Trust lets the agent work there without popups; Hard means Mrai Buddy "
+        ex.addView(switchRow(this, "Action approvals", "When on, Mrai Buddy asks before Send, Pay, Delete and other "
+                + "risky taps. Off is plain mode: the agent just does what you ask.", Prefs.actionApprovals(this),
+                on -> Prefs.setActionApprovals(this, on)), full());
+        ex.addView(divider(), lineParams());
+        LinearLayout perms2 = listRow(this);
+        perms2.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout pt2 = column(this);
+        pt2.addView(title(this, "App permissions", 15));
+        pt2.addView(text(this, "Choose per app: Trust lets the agent work there without popups; Hard means Mrai Buddy "
                 + "itself asks you before Send, Pay, Delete…", 13, MUTED), topGap(2));
-        perms.addView(pt, weight1());
-        perms.addView(icon(this, R.drawable.ms_chevron_right, MUTED, 20));
-        perms.setOnClickListener(v -> startActivity(new android.content.Intent(this, AppPermissionsActivity.class)));
-        ex.addView(perms, full());
+        perms2.addView(pt2, weight1());
+        perms2.addView(icon(this, R.drawable.ms_chevron_right, MUTED, 20));
+        perms2.setOnClickListener(v -> startActivity(new android.content.Intent(this, AppPermissionsActivity.class)));
+        ex.addView(perms2, full());
         ex.addView(divider(), lineParams());
         final boolean dev = Prefs.devMode(this);
         if (!Flavor.PLAY) { // building and installing apps isn't allowed on Play

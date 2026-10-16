@@ -17,6 +17,13 @@ import java.util.regex.Pattern;
  * own bubble or approval card, so it can't approve for the user.
  */
 final class Guard {
+    /** Plain mode: the user turned Action approvals off, so no approval gates apply — taps and the
+     * agent's confirm calls go through without asking. The Guard's structural protections (Mrai Buddy's
+     * own UI stays off-limits) still hold; only the approval behavior is gated. */
+    static boolean approvalsOn(android.content.Context c) {
+        return Prefs.actionApprovals(c);
+    }
+
     /** Words on buttons that send, pay, delete or otherwise can't be taken back, and add-to-cart buttons, so every
      * agent asks the same way before shopping (EN, FR, DE, ES, IT, AR). */
     private static final Pattern RISKY = Pattern.compile("(?iu)^[^\\p{L}]*(?:(?:proceed|continue|go) to |passer (?:à la|au) |weiter zur |zur )?("

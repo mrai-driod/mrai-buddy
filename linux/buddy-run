@@ -551,9 +551,10 @@ stream_custom() {
   elif [ "$BACKEND" = custom ]; then
     if ! have python3 || [ ! -f /root/bin/custom-ai.py ]; then
       event buddy_error "Custom AI isn't installed yet. Install it in Mrai Buddy's Settings."; exit 0; fi
-    # Direct-post mode: Python POSTs events itself, no bash pipe needed.
-    run_custom
-    status=$?
+    # Belt-and-suspenders: Python tries direct-post AND prints to stdout;
+    # bash pipe catches the stdout fallback if direct-post failed.
+    run_custom | stream_custom
+    status=${PIPESTATUS[0]}
     name="Custom AI"
   elif [ "$BACKEND" = local ]; then
     if ! have python3 || [ ! -f /root/bin/local-ai.py ]; then

@@ -56,7 +56,7 @@ def load_config():
 
 
 def post_event(post_url, auth, sid, event):
-    """POST an event directly to the app. Best effort."""
+    """POST an event directly to the app. Returns True on success."""
     try:
         req = urllib.request.Request(
             post_url + "/event",
@@ -66,8 +66,9 @@ def post_event(post_url, auth, sid, event):
                      "User-Agent": "MraiBuddy/1.0"})
         with urllib.request.urlopen(req, timeout=10) as r:
             r.read()
+        return True
     except Exception:
-        pass
+        return False
 
 
 def chat(cfg, system_prompt, messages):
@@ -129,15 +130,19 @@ def main():
     post_url = payload.get("post_url", "")
     direct = bool(auth and sid and post_url)
 
+    direct_ok = True
     def emit(event):
+        nonlocal direct_ok
         if direct:
-            post_event(post_url, auth, sid, event)
+            if not post_event(post_url, auth, sid, event):
+                direct_ok = False
 
     cfg = load_config()
     if cfg is None:
         err = "Custom AI isn't configured yet — add your endpoint and key in Settings."
         emit({"type": "buddy_error", "text": err, "buddy_session": sid})
-        print(json.dumps({"error": err}))
+        if not direct or not direct_ok:
+            print(json.dumps({"error": err}))
         return
 
     system_prompt = (payload.get("system_prompt") or "").strip() or DEFAULT_PERSONA
@@ -150,7 +155,8 @@ def main():
     except Exception as e:
         err = scrub(str(e), cfg["api_key"])
         emit({"type": "buddy_error", "text": err, "buddy_session": sid})
-        print(json.dumps({"error": err}))
+        if not direct or not direct_ok:
+            print(json.dumps({"error": err}))
         return
 
     if direct:
@@ -159,7 +165,9 @@ def main():
               "buddy_session": sid})
         emit({"type": "result", "subtype": "success", "result": "",
               "buddy_session": sid})
-    print(json.dumps({"reply": reply}))
+    # Print to stdout as fallback ONLY if direct-post failed (bash pipe catches it)
+    if not direct or not direct_ok:
+        print(json.dumps({"reply": reply}))
 
 
 if __name__ == "__main__":

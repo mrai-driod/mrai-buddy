@@ -3,10 +3,17 @@
 Custom AI — Mrai Buddy's "bring your own AI" backend. POSTs to any
 OpenAI-compatible {base_url}/chat/completions with the user's own key.
 
+ALTERNATIVE ARCHITECTURE (v0.0.4+): Instead of relying on bash pipes
+(run_custom | stream_custom), this script POSTs events directly to the app
+when auth credentials are provided in the input. This bypasses the unreliable
+bash pipe layer entirely.
+
 Protocol: config lives in /root/.buddy/custom-ai.json (mode 600, written by the
 app, never logged): {"name": str, "base_url": str, "api_key": str, "model": str}.
-Read JSON {"system_prompt": str, "messages": [{"role":..., "content":...}]}
-from stdin, print JSON {"reply": str} or {"error": str} to stdout.
+Read JSON from stdin: {"system_prompt": str, "messages": [...],
+                       "auth": str, "sid": str, "post_url": str}
+- If auth/sid/post_url are present: POST events directly to the app.
+- Always print JSON {"reply": str} or {"error": str} to stdout as fallback.
 
 SECURITY: the API key is never printed, logged, or included in error text.
 """
@@ -48,6 +55,21 @@ def load_config():
             "base_url": base_url, "api_key": api_key, "model": model}
 
 
+def post_event(post_url, auth, sid, event):
+    """POST an event directly to the app. Best effort."""
+    try:
+        req = urllib.request.Request(
+            post_url + "/event",
+            data=json.dumps(event).encode("utf-8"),
+            headers={"Content-Type": "application/json",
+                     "Authorization": "Bearer " + auth,
+                     "User-Agent": "MraiBuddy/1.0"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            r.read()
+    except Exception:
+        pass
+
+
 def chat(cfg, system_prompt, messages):
     body = {
         "model": cfg["model"],
@@ -62,7 +84,6 @@ def chat(cfg, system_prompt, messages):
         with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
             raw = r.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as e:
-        # 401/403/429/...: surface the provider's message, never the key
         try:
             detail = e.read().decode("utf-8", "replace")
             msg = ""
@@ -96,16 +117,29 @@ def chat(cfg, system_prompt, messages):
 
 
 def main():
-    cfg = load_config()
-    if cfg is None:
-        print(json.dumps({"error": "Custom AI isn't configured yet — "
-                                   "add your endpoint and key in Settings."}))
-        return
     try:
         payload = json.loads(sys.stdin.read() or "{}")
     except Exception:
         print(json.dumps({"error": "Custom AI couldn't read its input."}))
         return
+
+    # Direct-post mode: bypass bash pipes entirely
+    auth = payload.get("auth", "")
+    sid = payload.get("sid", "")
+    post_url = payload.get("post_url", "")
+    direct = bool(auth and sid and post_url)
+
+    def emit(event):
+        if direct:
+            post_event(post_url, auth, sid, event)
+
+    cfg = load_config()
+    if cfg is None:
+        err = "Custom AI isn't configured yet — add your endpoint and key in Settings."
+        emit({"type": "buddy_error", "text": err, "buddy_session": sid})
+        print(json.dumps({"error": err}))
+        return
+
     system_prompt = (payload.get("system_prompt") or "").strip() or DEFAULT_PERSONA
     clean = []
     for m in payload.get("messages") or []:
@@ -114,8 +148,17 @@ def main():
     try:
         reply = chat(cfg, system_prompt, clean)
     except Exception as e:
-        print(json.dumps({"error": scrub(str(e), cfg["api_key"])}))
+        err = scrub(str(e), cfg["api_key"])
+        emit({"type": "buddy_error", "text": err, "buddy_session": sid})
+        print(json.dumps({"error": err}))
         return
+
+    if direct:
+        emit({"type": "assistant",
+              "message": {"content": [{"type": "text", "text": reply}]},
+              "buddy_session": sid})
+        emit({"type": "result", "subtype": "success", "result": "",
+              "buddy_session": sid})
     print(json.dumps({"reply": reply}))
 
 

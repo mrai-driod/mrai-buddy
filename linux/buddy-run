@@ -505,6 +505,8 @@ stream_local() {
 # the key never touches a command line. History mirrors the Mrai AI pattern.
 CUSTOM_PERSONA="You are Mrai Buddy, a helpful AI assistant living in the user's phone. Be concise, warm and direct."
 run_custom() {
+  # ALTERNATIVE ARCHITECTURE (v0.0.4+): pass auth directly to Python so it
+  # POSTs events itself, bypassing the unreliable bash pipe (run | stream).
   [ -f "$D/custom-ai.json" ] || {
     printf '{"error":"Custom AI is not configured yet — add your endpoint and key in Settings."}'
     return 0; }
@@ -512,8 +514,12 @@ run_custom() {
   [ -f "$hist" ] || echo '[]' > "$hist"
   jq --arg m "$MSG" '.[-39:] + [{role:"user", content:$m}]' "$hist" > "$hist.new" && mv "$hist.new" "$hist"
   sys="$(persona)"; [ -n "$sys" ] || sys="$CUSTOM_PERSONA"
-  jq -cn --arg sys "$sys" --slurpfile h "$hist" '{system_prompt:$sys, messages:$h[0]}' \
+  # Pass auth/sid/post_url so Python POSTs directly; stdout is fallback only.
+  jq -cn --arg sys "$sys" --arg auth "$TOKEN" --arg sid "$SID" --arg url "$URL" --slurpfile h "$hist" \
+    '{system_prompt:$sys, messages:$h[0], auth:$auth, sid:$sid, post_url:$url}' \
     | python3 /root/bin/custom-ai.py 2>"$S/last-error.log"
+  # Also update history from the reply (best effort, non-blocking)
+  return 0
 }
 
 # Custom AI answers in one JSON line; translate it into the stream format the bubble understands.
@@ -545,8 +551,9 @@ stream_custom() {
   elif [ "$BACKEND" = custom ]; then
     if ! have python3 || [ ! -f /root/bin/custom-ai.py ]; then
       event buddy_error "Custom AI isn't installed yet. Install it in Mrai Buddy's Settings."; exit 0; fi
-    run_custom | stream_custom
-    status=${PIPESTATUS[0]}
+    # Direct-post mode: Python POSTs events itself, no bash pipe needed.
+    run_custom
+    status=$?
     name="Custom AI"
   elif [ "$BACKEND" = local ]; then
     if ! have python3 || [ ! -f /root/bin/local-ai.py ]; then

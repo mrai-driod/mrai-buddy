@@ -300,8 +300,8 @@ final class Account {
                             + "cd ~/.mrai-buddy/bin && "
                             + "curl -fsSL -o llama-server.tar.gz "
                             + "https://github.com/ggml-org/llama.cpp/releases/download/b9775/llama-b9775-bin-android-arm64.tar.gz "
-                            + "&& tar -xzf llama-server.tar.gz llama-b9775-bin-android-arm64/llama-server "
-                            + "&& mv llama-b9775-bin-android-arm64/llama-server . && rm -rf llama-b9775-bin-android-arm64 llama-server.tar.gz "
+                            + "&& tar -xzf llama-server.tar.gz llama-b9775/llama-server "
+                            + "&& mv llama-b9775/llama-server . && rm -rf llama-b9775 llama-server.tar.gz "
                             + "&& chmod +x llama-server && ./llama-server --version && echo ENGINE_OK", 600);
                     if (!o.contains("ENGINE_OK")) throw new IOException(tail(o));
                     set(Step.INSTALLING, "Downloading Local AI model (about 200 MB, one time)… Use Wi-Fi.");

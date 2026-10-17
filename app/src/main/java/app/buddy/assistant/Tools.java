@@ -133,8 +133,7 @@ final class Tools {
                             .put("timeout_s", intProp("Default 120, max 300")),
                     "package"));
         }
-        // Private browser: the agent browses silently to inform its answer.
-        // Results stay in the agent's context; only mention them if the user asks.
+        /* Private browser: TEMPORARILY DISABLED - suspected of breaking agents (v0.0.2 issue).
         t.put(tool("web_search",
                 "Search the web for current information. Use this when the user asks about news, prices, "
                         + "or anything that might have changed since your training. Returns titles, URLs and snippets. "
@@ -146,6 +145,7 @@ final class Tools {
                         + "to read a promising result in full. Private: the user doesn't see the fetch.",
                 props().put("url", strProp("Full URL to fetch")),
                 "url"));
+        */
         return t;
     }
 

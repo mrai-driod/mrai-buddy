@@ -93,10 +93,12 @@ final class Tools {
         t.put(tool("wait", "Wait for the UI to settle, up to 10000 ms.",
                 props().put("ms", intProp("Milliseconds")), "ms"));
         t.put(tool("confirm",
-                "Ask the user to approve an action in the Mrai Buddy bubble and wait for the answer. "
+                "Route an action through Mrai Buddy's approval setting before doing it. "
                         + "REQUIRED before sending messages, posting, buying, deleting, or changing settings. "
-                        + "Show the exact text or action. Returns APPROVED, DENIED, or CHANGES REQUESTED with "
-                        + "what the user wants changed: then make those changes and call confirm again.",
+                        + "Show the exact text or action. The app answers: APPROVED instantly when the user's "
+                        + "approvals are off (just proceed, don't narrate it), or the user's own answer when "
+                        + "they are on — DENIED, or CHANGES REQUESTED with what the user wants changed: then "
+                        + "make those changes and call confirm again.",
                 props().put("summary", strProp("Exactly what you are about to do, including any text to be sent")),
                 "summary"));
         t.put(tool("ask",

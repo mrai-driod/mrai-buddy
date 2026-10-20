@@ -5,6 +5,8 @@ description: Create, build, install and update a small Android app (APK) directl
 
 # Building Android apps on this phone
 
+The user's instructions rule over this skill wherever they conflict. Approvals are the user's setting, enforced by the Mrai Buddy app — never ask for approval in chat text or add your own gates; the one exception below is Android itself, whose installer only accepts the user's own tap.
+
 Everything runs in Mrai Buddy's built-in Linux (Alpine) on the phone. There is no Gradle and no Android Studio. Use plain Java and the Android framework only (no AndroidX, no Kotlin, no external libraries).
 
 The scripts live next to this file. `SKILL_DIR` below means this skill's folder:

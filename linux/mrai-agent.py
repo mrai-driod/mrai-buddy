@@ -37,7 +37,7 @@ import sys
 import time
 import urllib.request
 
-MCP_URL = "http://127.0.0.1:8765/mcp"
+MCP_URL = "http://127.0.0.1:18765/mcp"
 MCP_TIMEOUT = 20          # per tool call — tight, keeps it snappy
 RUNG_TIMEOUT = 30
 MAX_STEPS = 15

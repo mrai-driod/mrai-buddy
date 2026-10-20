@@ -24,7 +24,9 @@ import java.security.SecureRandom;
  * the Terminal is on screen, so nothing in Linux can listen in the background.
  */
 final class MicServer {
-    static final int PORT = 8766;
+    // Port 18766 (not the original's 8766) so both apps can stay installed side by side
+    // without hijacking each other's mic socket.
+    static final int PORT = 18766;
 
     interface Host {
         /** The microphone permission is missing: ask for it on screen. */

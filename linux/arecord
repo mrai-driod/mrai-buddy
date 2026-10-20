@@ -13,4 +13,4 @@ while [ $# -gt 0 ]; do
 done
 tok=$(cat /root/.buddy/mic-token 2>/dev/null) || { echo "arecord: Buddy's microphone is off (open Buddy's Terminal)" >&2; exit 1; }
 # nc keeps reading after the request line; Claude Code stops recording by ending this process
-{ echo "$tok $rate $ch"; exec sleep 2147483647; } | exec nc 127.0.0.1 8766
+{ echo "$tok $rate $ch"; exec sleep 2147483647; } | exec nc 127.0.0.1 18766

@@ -59,7 +59,7 @@ Mrai Buddy app / bubble ──► Buddy's Linux (Alpine via proot): buddy-run �
         ▲                                                                  │
         └────────────── streamed replies (POST /event) ◄───────────────────┤
                                                                            ▼
-Buddy accessibility service ◄──── MCP over http://127.0.0.1:8765/mcp (phone tools)
+Buddy accessibility service ◄──── MCP over http://127.0.0.1:18765/mcp (phone tools)
 ```
 
 - The **accessibility service** draws the Sharingan bubble and runs a small local **MCP server** with the phone tools: `read_screen`, `tap`, `long_press`, `type_text`, `scroll`, `swipe`, `press`, `open_app`, `list_apps`, `open_url`, `screenshot`, `wait`, `install_apk`, `wait_for_install`, `confirm`, `ask`, `notify`, `web_search`, `web_fetch` and `update_buddy`.

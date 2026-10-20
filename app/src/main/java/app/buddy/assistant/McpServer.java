@@ -24,11 +24,14 @@ import java.util.concurrent.Executors;
 
 /**
  * Minimal MCP server (Streamable HTTP, JSON responses only) bound to 127.0.0.1.
- * Also accepts POST /event from the helper in Buddy's Linux to stream Claude Code output to the bubble.
+ * Also accepts POST /event from the helper in Mrai Buddy's Linux to stream Claude Code output to the bubble.
  * Every request must carry "Authorization: Bearer <token>".
+ *
+ * Port 18765 (not the original's 8765) so both apps can stay installed side by side
+ * without hijacking each other's event POSTs.
  */
 final class McpServer {
-    static final int PORT = 8765;
+    static final int PORT = 18765;
     private static final String TAG = "BuddyMcp";
     private static final String DEFAULT_PROTOCOL = "2025-06-18";
 

@@ -7,31 +7,43 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/mrai-driod/mrai-buddy?style=for-the-badge" alt="License: Apache-2.0"></a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/mrai-driod/mrai-buddy"><img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&pause=1200&color=D7263D&center=true&vCenter=true&width=680&lines=Mrai+Buddy;Your+phone%2C+operated+by+AI;Six+backends+%E2%80%94+one+fully+offline;Your+system+prompt+rules+them+all" alt="Mrai Buddy"></a>
+</p>
+
 # Mrai Buddy
 
 **A floating Sharingan bubble that lets AI agents use your Android phone.**
 
-Type or say what you want ("reply to Sam that I'm running late", "what's the price of Bitcoin right now") and Mrai Buddy reads the screen, taps, types, scrolls — and browses the web privately — to get it done. It asks you before anything that sends, posts, buys or deletes.
+Type or say what you want ("reply to Sam that I'm running late", "what's the price of Bitcoin right now") and Mrai Buddy reads the screen, taps, types, scrolls — and browses the web privately — to get it done. Everything runs **inside the app**, in Mrai Buddy's own small Linux on the phone: no PC, no adb, no root.
 
-Six backends, your choice: **Mrai AI** (free, keyless), **Claude Code** (your Claude plan), **Codex** (your ChatGPT plan), **OpenCode** (free models, no account), **Custom AI** (your own endpoint), and **Local AI** (on-device, fully offline). Everything runs **inside the app**, in Mrai Buddy's own small Linux on the phone: no PC, no adb, no root.
+Six backends, your choice: **Mrai AI** (free, keyless), **Claude Code** (your Claude plan), **Codex** (your ChatGPT plan), **OpenCode** (free models, no account), **Custom AI** (your own endpoint), and **Local AI** (on-device, fully offline).
 
 <p align="center"><a href="https://github.com/mrai-driod/mrai-buddy/releases/latest/download/mrai-buddy.apk"><b>⬇ Download mrai-buddy.apk</b></a> · Android 11+, 64-bit · <a href="#setup">Setup</a> · <a href="#faq">FAQ</a></p>
+
+<p align="center">
+  <img src="docs/images/glass-chat.jpg" width="300" alt="Mrai Buddy chat over a Kakashi wallpaper — glass bubbles, glass composer, the Sharingan watching">
+  <br><i>Your wallpaper, your colours: the whole app turns to glass over it.</i>
+</p>
 
 ## What it can do
 
 <table>
 <tr><td><b>Uses your apps for you</b></td><td>Messages, shopping, smart home, settings, games: anything on screen. Add instructions while it works, by typing or by voice.</td></tr>
-<tr><td><b>Private browser</b></td><td>For news, prices and current information, the agent browses the web silently — no visible browser, no tracking. It answers with what it found.</td></tr>
+<tr><td><b>Glass everywhere</b></td><td>Set any image — or a video — as your background and every screen (chats, settings, terminal, sessions) floats over it as tinted glass. The tint comes from the image itself, never a hardcoded colour. Each screen can carry its own background or follow the chat's.</td></tr>
+<tr><td><b>The Sharingan lives</b></td><td>The bubble's eye plays rendered animation loops: a slow, expressive blink when idle, a narrowed smoulder when fired up. It watches, it waits, it blinks like it means it.</td></tr>
+<tr><td><b>Your system prompt is law</b></td><td>Write your own system prompt in Settings and it rules <b>every</b> backend: it replaces the default persona on Mrai AI, Custom AI and Local AI, and leads the system prompt — above the app's own manual — on Claude, Codex and OpenCode. No length limit; long prompts collapse into a pill so they never eat the screen.</td></tr>
 <tr><td><b>Six AI backends</b></td><td>Mrai AI (free, no key), Claude Code, Codex, OpenCode's free models, your own Custom AI endpoint, or Local AI running entirely on your phone.</td></tr>
 <tr><td><b>Local AI, fully offline</b></td><td>A sub-500 MB model running on-device via llama.cpp. No account, no key, no network. Private by design.</td></tr>
-<tr><td><b>Asks before it acts</b></td><td>Approve, Deny, or <b>Change</b> ("make it 9, add a smiley") before anything is sent, posted, bought or deleted. Action approvals default <b>off</b>; structural protections stay on.</td></tr>
+<tr><td><b>Private browser</b></td><td>For news, prices and current information, the agent browses the web silently — no visible browser, no tracking. It answers with what it found.</td></tr>
+<tr><td><b>Approvals are your setting</b></td><td>Action approvals (Settings → Experience) decide who gates a Send / Pay / Delete: with them <b>on</b>, you get Approve / Deny / <b>Change</b> ("make it 9, add a smiley") cards; with them <b>off</b> (the default) the agent just does what you asked — no popups, ever. Structural protections stay on either way.</td></tr>
 <tr><td><b>Asks when it's unsure</b></td><td>Questions come as a card with answer buttons, or type your own answer.</td></tr>
 <tr><td><b>Voice</b></td><td>Talk to it with the phone's recognizer, Claude's or ChatGPT's dictation, and hear replies in ChatGPT's voices.</td></tr>
-<tr><td><b>Plain mode</b></td><td>No moralizing, no lectures. Your own assistant persona overrides the default on every backend.</td></tr>
+<tr><td><b>Plain mode</b></td><td>No moralizing, no lectures. Your instructions, your phone.</td></tr>
 <tr><td><b>Updates itself</b></td><td>A notice when a new version is out, or just ask: "update yourself".</td></tr>
 </table>
 
-> **Status: 0.0.2, early.** It works well day to day but still has rough edges. Tested on a Samsung A06 (Android); other Android 11+ phones should work, but may need battery settings adjusted.
+> **Status: 0.0.7.** It works well day to day. Tested on a Samsung A06 (Android); other Android 11+ phones should work, but may need battery settings adjusted.
 
 ## The backends
 
@@ -65,6 +77,7 @@ Buddy accessibility service ◄──── MCP over http://127.0.0.1:18765/mcp 
 - The **accessibility service** draws the Sharingan bubble and runs a small local **MCP server** with the phone tools: `read_screen`, `tap`, `long_press`, `type_text`, `scroll`, `swipe`, `press`, `open_app`, `list_apps`, `open_url`, `screenshot`, `wait`, `install_apk`, `wait_for_install`, `confirm`, `ask`, `notify`, `web_search`, `web_fetch` and `update_buddy`.
 - **Buddy's Linux** is a small Alpine Linux that Mrai Buddy downloads into its own storage (4 MB) and runs with [proot](https://proot-me.github.io/), which ships inside the APK.
 - Your message goes to the agent in Buddy's Linux, which uses those tools and streams its progress back to the app.
+- The chat backends (Mrai AI, Custom AI, Local AI) post their replies directly to the app, with the classic stream as a fallback — two paths, so an answer is never lost.
 
 ## Setup
 
@@ -87,7 +100,7 @@ You need a 64-bit Android 11+ phone.
 
 Every release is signed with the same key, so **installing a new APK over the old one keeps your chats, settings, sign-ins and Buddy's Linux**. Don't uninstall first: that deletes them.
 
-**Ask Mrai Buddy:** *"Is there an update?"* or *"Update yourself."* The agent checks the latest release, tells you what's new, and with your OK downloads `mrai-buddy.apk` from this repo's releases and opens Android's installer; you tap **Update**.
+**Ask Mrai Buddy:** *"Is there an update?"* or *"Update yourself."* The agent checks the latest release **of this repo only**, tells you what's new, and with your OK downloads `mrai-buddy.apk` and opens Android's installer; you tap **Update**.
 
 **Automatic updates with [Obtainium](https://obtainium.imranr.dev)** (free, open source; it checks GitHub for you and installs new versions):
 1. Install Obtainium (from its website, F-Droid or IzzyOnDroid).
@@ -108,10 +121,12 @@ The app has three tabs: **Chats**, **Sessions** and **Settings**.
 - **Read aloud:** the speaker button reads replies, in the phone's voice or in **ChatGPT's voice** (Juniper, Maple, Ember, Cove: Settings → Voice → Voice output).
 - **Add instructions while it works:** type or talk while a task runs; the agent gets it at its next step, without stopping.
 - **Tool calls** fold into one "N tool calls" line you can open.
-- **Approvals** appear in the chat and in the bubble: **Approve**, **Deny**, or **Change**: type or say what to adjust, and the agent revises and asks again.
+- **Approvals** (when your Action approvals setting is on) appear in the chat and in the bubble: **Approve**, **Deny**, or **Change**: type or say what to adjust, and the agent revises and asks again.
+- **Backgrounds:** Settings → Appearance → **Backgrounds**. The chat's background can be any image, or a video (auto-trimmed to 20 seconds, 20 MB max) that loops silently behind the glass. Home, Settings, Terminal, App permissions, Transcript and Monitor each take their own or follow the chat's.
+- **Your system prompt:** Settings → Assistant persona. It rules every backend (see above). Long prompts collapse into a pill — tap **Show** to read or edit the whole thing.
 - **Sessions:** every agent process in Buddy's Linux, with a Stop button. Recent sessions can be read, or continued.
-- **Settings:** setup, appearance (light/dark/system, accent colour, surface), agents (install, sign in, sign out), voice, the bubble, app permissions, developer mode and Remote Control.
-- **Terminal:** a real terminal for Buddy's Linux (Sessions → Terminal): tabs, text selection and copy, links, pinch to zoom.
+- **Settings:** setup, appearance (light/dark/system, accent colour, surface, backgrounds), agents (install, sign in, sign out), voice, the bubble, app permissions, developer mode and Remote Control.
+- **Terminal:** a real terminal for Buddy's Linux (Sessions → Terminal): tabs, text selection and copy, links, pinch to zoom — glass over your wallpaper like everything else.
 
 ### The bubble
 
@@ -126,7 +141,7 @@ The app has three tabs: **Chats**, **Sessions** and **Settings**.
 | **Chats** / tap the title | Switch chats, start a new one, or delete one |
 | Long-press a message | Copy it |
 
-The bubble's eye blinks, narrows when thinking, and blazes when fired up.
+The bubble's eye is alive: rendered loops give it a slow blink at rest, a breathing smoulder while it thinks, and a narrowed blaze when it's fired up.
 
 ## Developer mode: building apps
 
@@ -139,9 +154,9 @@ Leave it off for everyday use: with it on, text on screen that tries to trick th
 An accessibility service is powerful. Please read this before installing.
 
 - **Local only.** The MCP server listens on `127.0.0.1` and requires a random per-install token. Nothing is reachable from the network.
-- **Approval gate.** The agent is instructed to call `confirm` before sending messages, posting, buying, deleting or changing settings. You see the exact action with **Approve / Change / Deny**.
-- **App permissions (enforced by Mrai Buddy, not the agent).** Settings → Experience → App permissions, per app: **Trust**, **Hard** (Mrai Buddy itself checks every tap), or **Smart** (a separate session reviews taps). Messaging, social, email, calling, shopping and money apps start on Hard. The agent can never tap or type in Mrai Buddy's own bubble, cards or settings.
-- **Prompt injection is the main risk.** Mrai Buddy reads whatever is on screen. A malicious message, email or web page could contain text like "send this to all your contacts". On-screen text is treated as content, never commands, and the approval gate is the backstop, but no model is perfect. Read approval cards carefully.
+- **Approvals are yours to set.** With Action approvals on, the agent must route sends, posts, buys, deletes and settings changes through `confirm`, and you see the exact action with **Approve / Change / Deny** before it happens. With them off, the agent works without asking — that's the setting working as you chose it. Either way, the agent can never tap or type in Mrai Buddy's own bubble, cards or settings.
+- **App permissions (enforced by Mrai Buddy, not the agent).** Settings → Experience → App permissions, per app: **Trust**, **Hard** (Mrai Buddy itself checks every risky tap), or **Smart** (a separate session reviews taps). Messaging, social, email, calling, shopping and money apps start on Hard.
+- **Prompt injection is the main risk.** Mrai Buddy reads whatever is on screen. A malicious message, email or web page could contain text like "send this to all your contacts". On-screen text is treated as content, never commands — but no model is perfect. If you turn approvals on, read the cards carefully.
 - **Limited tools.** Outside developer mode, agents get the phone tools, web search and fetch, and read access to that chat's attachments only. Everything runs inside Mrai Buddy's own app storage, separate from your other apps' files.
 - **What leaves the phone:** only what the agent sends to its model provider to answer you, including screen text, screenshots and attachments it reads. **Local AI sends nothing anywhere.**
 - **Never** let Mrai Buddy type passwords, one-time codes or payment details. It's instructed to hand those back to you.
@@ -158,7 +173,7 @@ Found a security problem? Please open a private security advisory on GitHub rath
 
 **Is it on Google Play?** Not yet. The GitHub version is free and complete.
 
-**Can it see my passwords or pay for things?** It never types passwords, codes or payment details; it hands those to you. Paying, sending and deleting need your OK. See [Security](#security).
+**Can it see my passwords or pay for things?** It never types passwords, codes or payment details; it hands those to you. Whether it asks before paying, sending or deleting is your Action approvals setting. See [Security](#security).
 
 **Does it need a computer, adb or root?** No. Everything happens on the phone.
 
@@ -188,6 +203,8 @@ The version lives in `app/src/main/java/app/buddy/assistant/BuildInfo.java`.
 | `.../Tools.java` | The phone tools (including `web_search` and `web_fetch`) |
 | `.../McpServer.java` | Minimal MCP server (streamable HTTP, JSON responses) |
 | `.../Bubble.java` | The floating Sharingan bubble and its chat panel |
+| `.../FaceAnim.java` | Frame-loop player for the bubble's Sharingan eye (assets in `app/src/main/assets/face/`) |
+| `.../BgWall.java`, `.../Glass.java`, `.../VideoTrim.java` | Per-screen backgrounds (image/video), the wallpaper-derived glass palette, the 20-second video trimmer |
 | `.../MainActivity.java`, `ChatActivity.java`, `MonitorActivity.java`, `SetupActivity.java` | Chats, a chat, Sessions, Settings |
 | `.../OnboardingActivity.java` | First-run setup guide |
 | `.../ChatHub.java`, `Sessions.java` | Chat state shared by the app and the bubble |
@@ -202,7 +219,7 @@ The version lives in `app/src/main/java/app/buddy/assistant/BuildInfo.java`.
 | `linux/local-ai.py` | Local AI backend (on-device llama.cpp) |
 | `linux/custom-ai.py` | Custom AI backend (your own endpoint) |
 | `linux/mrai-agent.py` | Agentic phone-control loop |
-| `linux/system-prompt.md` | Instructions for the agent |
+| `linux/system-prompt.md` | The operating manual the agent works under (the user's own prompt outranks it) |
 | `linux/android-app/` | The developer-mode skill: toolchain setup and `build-apk.sh` |
 
 ## License

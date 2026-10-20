@@ -30,6 +30,10 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
     private LinearLayout list;
     /** Setup card open state; null = automatic (open until all steps are done). */
     private Boolean setupOpen;
+    /** The screen the background picker is currently choosing for. */
+    private String pendingBgScreen = "chat";
+    /** Whether the (long) system-prompt editor is expanded; long prompts collapse to a pill. */
+    private boolean personaOpen;
 
     @Override
     protected void onCreate(Bundle state) {
@@ -47,7 +51,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         scroll.addView(list);
         root.addView(scroll, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
         root.addView(bottomNav(this, NAV_SETTINGS, ChatHub.get(this).runningCount()), full());
-        setContentView(root);
+        setContentView(BgWall.host(this, "settings", root));
     }
 
     @Override
@@ -81,18 +85,70 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
 
     private static final int REQ_WALLPAPER = 41;
 
-    /** Open the photo picker for the chat wallpaper. Any image is allowed. */
-    private void pickWallpaper() {
+    /** One screen's background row in Appearance: state + Choose + (Remove / Use chat's). */
+    private void addBgRow(LinearLayout ap, final String screen, String label) {
+        String path = Prefs.bgPath(this, screen);
+        boolean own = Prefs.bgIsOwn(this, screen);
+        String state;
+        if ("chat".equals(screen)) {
+            state = path == null ? "Off" : (Prefs.bgIsVideo(path) ? "Video" : "Image");
+        } else if (own) {
+            state = Prefs.bgIsVideo(path) ? "Own video" : "Own image";
+        } else {
+            state = path == null ? "Off — follows chat" : "Chat's background";
+        }
+        ap.addView(fieldLabel(label, state), topGap(14));
+        LinearLayout r = row(this);
+        Button pick = button(this, path == null && "chat".equals(screen) ? "Choose…" : "Change…", false);
+        pick.setOnClickListener(v -> pickBackground(screen));
+        r.addView(pick);
+        if ("chat".equals(screen) && path != null) {
+            Button clear = button(this, "Remove", false);
+            clear.setTextColor(ERR);
+            LinearLayout.LayoutParams lp = wrap();
+            lp.leftMargin = dp(this, 10);
+            clear.setOnClickListener(v -> {
+                clearBackground(screen);
+                Toast.makeText(this, "Background removed.", Toast.LENGTH_SHORT).show();
+                render();
+            });
+            r.addView(clear, lp);
+        } else if (!"chat".equals(screen) && own) {
+            Button follow = button(this, "Use chat's", false);
+            LinearLayout.LayoutParams lp = wrap();
+            lp.leftMargin = dp(this, 10);
+            follow.setOnClickListener(v -> {
+                clearBackground(screen);
+                Prefs.setBgOwn(this, screen, null);
+                Toast.makeText(this, label + " now uses the chat background.", Toast.LENGTH_SHORT).show();
+                render();
+            });
+            r.addView(follow, lp);
+        }
+        ap.addView(r, topGap(8));
+    }
+
+    /** Delete a screen's own background files and forget them. */
+    private void clearBackground(String screen) {
         try {
-            android.content.Intent i;
-            if (android.os.Build.VERSION.SDK_INT >= 33) {
-                i = new android.content.Intent(android.provider.MediaStore.ACTION_PICK_IMAGES);
-            } else {
-                i = new android.content.Intent(android.content.Intent.ACTION_GET_CONTENT).setType("image/*");
-            }
+            Prefs.bgFile(this, screen, "jpg").delete();
+            Prefs.bgFile(this, screen, "mp4").delete();
+        } catch (Exception ignored) {
+        }
+        Prefs.setBgOwn(this, screen, null);
+    }
+
+    /** Open the picker for a screen's background. Images and videos are allowed. */
+    private void pickBackground(String screen) {
+        pendingBgScreen = screen;
+        try {
+            android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_GET_CONTENT);
+            i.setType("*/*");
+            i.putExtra(android.content.Intent.EXTRA_MIME_TYPES, new String[]{"image/*", "video/*"});
+            i.addCategory(android.content.Intent.CATEGORY_OPENABLE);
             startActivityForResult(i, REQ_WALLPAPER);
         } catch (android.content.ActivityNotFoundException e) {
-            Toast.makeText(this, "No photo app on this phone can do that.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "No app on this phone can pick a file.", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -101,23 +157,87 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         super.onActivityResult(code, result, data);
         if (code != REQ_WALLPAPER || result != RESULT_OK || data == null || data.getData() == null) return;
         final android.net.Uri uri = data.getData();
-        Toast.makeText(this, "Setting wallpaper…", Toast.LENGTH_SHORT).show();
+        final String screen = pendingBgScreen;
+        Toast.makeText(this, "Setting background…", Toast.LENGTH_SHORT).show();
         new Thread(() -> {
-            boolean ok = saveWallpaper(uri);
+            final String msg = saveBackground(uri, screen);
             runOnUiThread(() -> {
-                if (ok) {
-                    Prefs.setWallpaper(this, Prefs.wallpaperFile(this).getPath());
-                    Toast.makeText(this, "Wallpaper set. Open a chat to see it.", Toast.LENGTH_SHORT).show();
-                    render();
-                } else {
-                    Toast.makeText(this, "That image couldn't be used as a wallpaper.", Toast.LENGTH_LONG).show();
-                }
+                Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+                if (msg != null && msg.startsWith("Background set")) render();
             });
         }).start();
     }
 
+    /**
+     * Save a picked image/video as a screen's background. Returns the user-facing
+     * result message. Videos: 20 MB cap; longer than 20 s is trimmed to 20 s.
+     */
+    private String saveBackground(android.net.Uri uri, String screen) {
+        String type = getContentResolver().getType(uri);
+        boolean video = type != null ? type.startsWith("video/")
+                : uri.toString().toLowerCase(java.util.Locale.ROOT).contains(".mp4");
+        try {
+            if (!video) {
+                if (!saveImageBg(uri, screen)) return "That image couldn't be used as a background.";
+                try {
+                    Prefs.bgFile(this, screen, "mp4").delete();
+                } catch (Exception ignored) {
+                }
+                Prefs.setBgOwn(this, screen, Prefs.bgFile(this, screen, "jpg").getPath());
+                return "Background set.";
+            }
+            java.io.File tmp = new java.io.File(getCacheDir(), "bg-pick.mp4");
+            try (java.io.InputStream in = getContentResolver().openInputStream(uri);
+                 java.io.FileOutputStream out = new java.io.FileOutputStream(tmp)) {
+                if (in == null) return "That video couldn't be read.";
+                byte[] buf = new byte[64 * 1024];
+                int n;
+                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            }
+            long maxBytes = 20L * 1024 * 1024;
+            if (tmp.length() > maxBytes) {
+                tmp.delete();
+                return "That video is over the 20 MB cap — pick a smaller one.";
+            }
+            java.io.File dst = Prefs.bgFile(this, screen, "mp4");
+            long dur = VideoTrim.durationMs(tmp.getPath());
+            boolean trimmed = false;
+            if (dur > 20_500) {
+                if (!VideoTrim.trimTo(tmp.getPath(), dst.getPath(), 20_000)) {
+                    tmp.delete();
+                    return "That video couldn't be trimmed to 20 seconds.";
+                }
+                trimmed = true;
+            } else {
+                copyFile(tmp, dst);
+            }
+            tmp.delete();
+            if (dst.length() > maxBytes) {
+                dst.delete();
+                return "That video is over the 20 MB cap — pick a smaller one.";
+            }
+            try {
+                Prefs.bgFile(this, screen, "jpg").delete();
+            } catch (Exception ignored) {
+            }
+            Prefs.setBgOwn(this, screen, dst.getPath());
+            return trimmed ? "Background set — trimmed to 20 seconds." : "Background set.";
+        } catch (Exception e) {
+            return "That file couldn't be used as a background.";
+        }
+    }
+
+    private static void copyFile(java.io.File src, java.io.File dst) throws Exception {
+        try (java.io.FileInputStream in = new java.io.FileInputStream(src);
+             java.io.FileOutputStream out = new java.io.FileOutputStream(dst)) {
+            byte[] buf = new byte[64 * 1024];
+            int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+        }
+    }
+
     /** Copy the picked image into app storage, downscaled to a sane backdrop size. */
-    private boolean saveWallpaper(android.net.Uri uri) {
+    private boolean saveImageBg(android.net.Uri uri, String screen) {
         int sample = 1;
         try (java.io.InputStream in = getContentResolver().openInputStream(uri)) {
             if (in == null) return false;
@@ -135,7 +255,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
             o.inSampleSize = sample;
             android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeStream(in, null, o);
             if (bmp == null) return false;
-            java.io.File out = Prefs.wallpaperFile(this);
+            java.io.File out = Prefs.bgFile(this, screen, "jpg");
             try (java.io.FileOutputStream fos = new java.io.FileOutputStream(out)) {
                 bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 88, fos);
             }
@@ -242,31 +362,15 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         }), topGap(8));
         TextView sn = text(this, "Warm is Mrai Buddy's original tone. Black (true black) applies in dark mode only.", 13, MUTED);
         ap.addView(sn, topGap(8));
-        ap.addView(fieldLabel("Chat wallpaper", Prefs.wallpaper(this) == null ? "Off" : "On"), topGap(18));
-        TextView wn = text(this, "Any image you like becomes the chat backdrop, and the chat's glass "
-                + "surfaces take their tint from the image itself.", 13, MUTED);
+        ap.addView(fieldLabel("Backgrounds", null), topGap(18));
+        TextView wn = text(this, "Any image — or a video up to 20 seconds (20 MB max; longer videos are "
+                + "trimmed automatically). Every screen can carry its own, or follow the chat's. "
+                + "Glass surfaces everywhere take their tint from the background itself.", 13, MUTED);
         ap.addView(wn, topGap(4));
-        LinearLayout wrow = row(this);
-        Button wpick = button(this, Prefs.wallpaper(this) == null ? "Choose image…" : "Change image…", false);
-        wpick.setOnClickListener(v -> pickWallpaper());
-        wrow.addView(wpick);
-        if (Prefs.wallpaper(this) != null) {
-            Button wclear = button(this, "Remove", false);
-            wclear.setTextColor(ERR);
-            LinearLayout.LayoutParams wlp = wrap();
-            wlp.leftMargin = dp(this, 10);
-            wclear.setOnClickListener(v -> {
-                try {
-                    Prefs.wallpaperFile(this).delete();
-                } catch (Exception ignored) {
-                }
-                Prefs.setWallpaper(this, null);
-                Toast.makeText(this, "Wallpaper removed.", Toast.LENGTH_SHORT).show();
-                render();
-            });
-            wrow.addView(wclear, wlp);
-        }
-        ap.addView(wrow, topGap(10));
+        String[][] bgScreens = {{"chat", "Chat"}, {"home", "Home"}, {"settings", "Settings"},
+                {"terminal", "Terminal"}, {"permissions", "App permissions"},
+                {"transcript", "Transcript"}, {"monitor", "Monitor"}};
+        for (String[] sc : bgScreens) addBgRow(ap, sc[0], sc[1]);
         addCard(ap);
 
         // ---------------------------------------------------------------- agent
@@ -298,30 +402,62 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         LinearLayout pp = card();
         pp.setPadding(dp(this, 16), dp(this, 14), dp(this, 16), dp(this, 16));
         pp.addView(title(this, "Your system prompt", 15));
-        pp.addView(text(this, "Plain mode: this replaces Mrai Buddy's default persona entirely for Mrai AI and "
-                + "Custom AI — on every provider, never appended. Empty = the default.", 13, MUTED), topGap(2));
-        final EditText personaEt = new EditText(this);
-        personaEt.setText(Prefs.assistantPersona(this));
-        personaEt.setHint("You are Mrai Buddy, …");
-        personaEt.setTextColor(TEXT);
-        personaEt.setTextSize(15);
-        personaEt.setMinLines(3);
-        personaEt.setGravity(Gravity.TOP);
-        personaEt.setInputType(android.text.InputType.TYPE_CLASS_TEXT
-                | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
-        personaEt.setPadding(dp(this, 12), dp(this, 10), dp(this, 12), dp(this, 10));
-        personaEt.setBackground(outlined(this, BG, 12, OUTLINE, 1));
-        pp.addView(personaEt, full());
-        LinearLayout prow = row(this);
-        prow.setGravity(Gravity.END);
-        Button personaSave = button(this, "Save", true);
-        personaSave.setOnClickListener(v -> {
-            Prefs.setAssistantPersona(this, personaEt.getText().toString().trim());
-            Toast.makeText(this, "Persona saved.", Toast.LENGTH_SHORT).show();
-        });
-        prow.addView(personaSave,
-                new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(this, 44)));
-        pp.addView(prow, topGap(8));
+        pp.addView(text(this, "Plain mode: this is your system prompt — absolute on every backend. "
+                + "For Mrai AI, Custom AI and Local AI it replaces the default persona entirely; for "
+                + "Claude, Codex and OpenCode it leads the system prompt and overrides the app's manual "
+                + "wherever they conflict. No length limit. Empty = the default.", 13, MUTED), topGap(2));
+        final String personaText = Prefs.assistantPersona(this);
+        final boolean longPersona = personaText.length() > 280;
+        if (longPersona && !personaOpen) {
+            // Collapsed pill: a long prompt never swallows the screen. Tap to see/edit it all.
+            LinearLayout pill = row(this);
+            pill.setGravity(Gravity.CENTER_VERTICAL);
+            pill.setPadding(dp(this, 12), dp(this, 8), dp(this, 8), dp(this, 8));
+            pill.setBackground(outlined(this, BG, 24, OUTLINE, 1));
+            TextView pt = text(this, "🧠  System prompt · " + personaText.length() + " characters", 13, TEXT);
+            pill.addView(pt, weight1());
+            Button show = button(this, "Show", false);
+            show.setOnClickListener(v -> {
+                personaOpen = true;
+                render();
+            });
+            pill.addView(show);
+            pp.addView(pill, full());
+        } else {
+            final EditText personaEt = new EditText(this);
+            personaEt.setText(personaText);
+            personaEt.setHint("You are Mrai Buddy, …");
+            personaEt.setTextColor(TEXT);
+            personaEt.setTextSize(15);
+            personaEt.setMinLines(3);
+            personaEt.setGravity(Gravity.TOP);
+            personaEt.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+                    | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+            personaEt.setPadding(dp(this, 12), dp(this, 10), dp(this, 12), dp(this, 10));
+            personaEt.setBackground(outlined(this, BG, 12, OUTLINE, 1));
+            pp.addView(personaEt, full());
+            LinearLayout prow = row(this);
+            prow.setGravity(Gravity.END);
+            if (longPersona) {
+                Button collapse = button(this, "Collapse", false);
+                collapse.setOnClickListener(v -> {
+                    personaOpen = false;
+                    render();
+                });
+                LinearLayout.LayoutParams clp = wrap();
+                clp.rightMargin = dp(this, 10);
+                prow.addView(collapse, clp);
+            }
+            Button personaSave = button(this, "Save", true);
+            personaSave.setOnClickListener(v -> {
+                Prefs.setAssistantPersona(this, personaEt.getText().toString().trim());
+                Toast.makeText(this, "Persona saved.", Toast.LENGTH_SHORT).show();
+                render();
+            });
+            prow.addView(personaSave,
+                    new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(this, 44)));
+            pp.addView(prow, topGap(8));
+        }
         addCard(pp);
 
         // ---------------------------------------------------------- phone tools
@@ -628,6 +764,7 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         priv.setPadding(0, dp(this, 4), 0, dp(this, 8));
         priv.setOnClickListener(v -> openUrl(Ui.PRIVACY_URL));
         list.addView(priv, full());
+        BgWall.glassify(this, "settings");
     }
 
     // ------------------------------------------------------------- setup card

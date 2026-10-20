@@ -115,7 +115,14 @@ public class TerminalActivity extends Screen implements TermView.Callbacks {
         root.addView(ended, full());
 
         root.addView(extraKeys(), full());
-        setContentView(root);
+        setContentView(BgWall.host(this, "terminal", root));
+        if (BgWall.hasBg(this, "terminal")) {
+            // the wallpaper glows through a slightly translucent terminal surface
+            term.setBackgroundColor(Theme.withAlpha(TermColors.DEFAULT_BG, 0xD8));
+            getWindow().setStatusBarColor(0x00000000);
+            getWindow().setNavigationBarColor(0x00000000);
+            BgWall.glassify(this, "terminal");
+        }
 
         if (!Linux.installed(this)) {
             Toast.makeText(this, "Install Claude Code, Codex or OpenCode in Settings first: that sets up Mrai Buddy's Linux.",

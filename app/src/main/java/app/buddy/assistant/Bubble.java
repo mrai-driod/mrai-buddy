@@ -67,9 +67,7 @@ final class Bubble implements ChatHub.Listener {
     private LinearLayout collapsed;
     private ImageView face;
     private TextView badge, pill;
-    private ValueAnimator breathing;
-    private final android.os.Handler blinkHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-    private boolean blinking = false;
+    private FaceAnim faceAnim;
     private RingView ring;
     private boolean noteListening;
     // expanded
@@ -114,7 +112,6 @@ final class Bubble implements ChatHub.Listener {
         buildCollapsed();
         buildPanel();
         followKeyboard();
-        startBlinking();
         root.setOnTouchListener((v, e) -> {
             if (e.getAction() == MotionEvent.ACTION_OUTSIDE && expanded && pendingConfirm == null) {
                 // An edge swipe for Back also lands outside the panel; wait briefly so Back can cancel this.
@@ -153,7 +150,7 @@ final class Bubble implements ChatHub.Listener {
             }
         }
         if (hub != null) hub.removeListener(this);
-        if (breathing != null) breathing.cancel();
+        if (faceAnim != null) faceAnim.stop();
         try {
             wm.removeView(root);
         } catch (Exception ignored) {
@@ -168,6 +165,8 @@ final class Bubble implements ChatHub.Listener {
         FrameLayout bubbleFrame = new FrameLayout(svc);
         face = new ImageView(svc);
         face.setImageResource(R.drawable.bubble_face_idle);
+        faceAnim = new FaceAnim(face);
+        faceAnim.play("idle");
         face.setScaleType(ImageView.ScaleType.FIT_CENTER);
         face.setBackground(null);
         // shadow follows Buddy's rounded speech-bubble body (drawable spans 2..54 of 56 units wide, 3..42 tall)
@@ -820,7 +819,12 @@ final class Bubble implements ChatHub.Listener {
                     .setInterpolator(new OvershootInterpolator(3f)).setDuration(220).start();
             dismissCircle.setBackground(electrode(over));
             dismissCircle.setColorFilter(over ? 0xFF16305C : 0xFFFFFFFF); // dark ✕ on white-blue, light ✕ on the electrode
-            face.setImageResource(over ? R.drawable.bubble_face_brace : R.drawable.bubble_face_fired);
+            if (faceAnim != null) {
+                if (over) faceAnim.showStatic(R.drawable.bubble_face_brace);
+                else faceAnim.play("fired");
+            } else {
+                face.setImageResource(over ? R.drawable.bubble_face_brace : R.drawable.bubble_face_fired);
+            }
             if (over) vibrate(15);
         }
         return over;
@@ -1873,57 +1877,15 @@ final class Bubble implements ChatHub.Listener {
         return dismissWindow != null && dismissWindow.getVisibility() == View.VISIBLE;
     }
 
-    /** The Sharingan blinks when idle — a quick scaleY dip that feels alive. */
-    private final Runnable blinkTick = new Runnable() {
-        @Override public void run() {
-            if (face == null) return;
-            // only blink when idle (not thinking/working, not mid-drag)
-            boolean idle = !blinking && breathing == null && !faceDragging();
-            if (idle) {
-                blinking = true;
-                // slow, smooth blink like a real eye: ease closed, linger, ease open
-                face.animate().scaleY(0.06f).setDuration(280)
-                    .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
-                    .withEndAction(() ->
-                        face.animate().scaleY(1f).setDuration(380)
-                            .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
-                            .withEndAction(() -> blinking = false).start()
-                    ).start();
-            }
-            // next blink in 3–8s, like a real eye
-            blinkHandler.postDelayed(this, 3000 + (long) (Math.random() * 5000));
-        }
-    };
-
-    private void startBlinking() {
-        blinkHandler.removeCallbacks(blinkTick);
-        blinkHandler.postDelayed(blinkTick, 2500);
-    }
-
-    private void stopBlinking() {
-        blinkHandler.removeCallbacks(blinkTick);
-    }
-
     private void setWorking(boolean on, boolean force) {
         ring.setSpinning(on);
-        // keep the fired-up / bracing face while the bubble is being dragged
-        if (force || !faceDragging()) face.setImageResource(on ? R.drawable.bubble_face_thinking : R.drawable.bubble_face_idle);
-        if (on && breathing == null) {
-            breathing = ValueAnimator.ofFloat(1f, 0.9f);
-            breathing.setDuration(750);
-            breathing.setRepeatMode(ValueAnimator.REVERSE);
-            breathing.setRepeatCount(ValueAnimator.INFINITE);
-            breathing.addUpdateListener(a -> {
-                float s = (float) a.getAnimatedValue();
-                face.setScaleX(s);
-                face.setScaleY(s);
-            });
-            breathing.start();
-        } else if (!on && breathing != null) {
-            breathing.cancel();
-            breathing = null;
+        // keep the fired-up / bracing face while the bubble is being dragged.
+        // The face's motion (blink, breathing) lives in the FaceAnim loops now.
+        if (force || !faceDragging()) {
             face.setScaleX(1f);
             face.setScaleY(1f);
+            if (faceAnim != null) faceAnim.play(on ? "thinking" : "idle");
+            else face.setImageResource(on ? R.drawable.bubble_face_thinking : R.drawable.bubble_face_idle);
         }
     }
 
@@ -2274,7 +2236,8 @@ final class Bubble implements ChatHub.Listener {
                         startX = rootLoc[0];
                         lpToScreenY = rootLoc[1] - startY; // window y vs screen y (status bar, insets)
                         if (windowAnim != null) windowAnim.cancel();
-                        face.setImageResource(R.drawable.bubble_face_fired);
+                        if (faceAnim != null) faceAnim.play("fired");
+                        else face.setImageResource(R.drawable.bubble_face_fired);
                         ((View) face.getParent()).animate().scaleX(1.14f).scaleY(1.14f)
                                 .setInterpolator(new OvershootInterpolator(3f)).setDuration(220).start();
                     }

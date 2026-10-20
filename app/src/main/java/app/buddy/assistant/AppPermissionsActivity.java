@@ -65,7 +65,7 @@ public class AppPermissionsActivity extends Screen {
         frame.setBackgroundColor(BG);
         frame.setFitsSystemWindows(true);
         frame.addView(root);
-        setContentView(protect(frame)); // agents never change App permissions, even when they may tap Buddy's screens
+        setContentView(BgWall.host(this, "permissions", protect(frame))); // agents never change App permissions, even when they may tap Buddy's screens
     }
 
     @Override
@@ -73,6 +73,7 @@ public class AppPermissionsActivity extends Screen {
         super.onResume();
         if (rulesPage) renderRules();
         else renderApps();
+        BgWall.glassify(this, "permissions");
     }
 
     // ------------------------------------------------------------------ apps

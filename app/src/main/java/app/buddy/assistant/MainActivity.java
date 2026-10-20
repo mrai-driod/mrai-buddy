@@ -78,7 +78,7 @@ public class MainActivity extends Screen implements ChatHub.Listener, Account.Li
         fp.rightMargin = dp(this, 16);
         fp.bottomMargin = dp(this, 92);
         root.addView(fab, fp);
-        setContentView(root);
+        setContentView(BgWall.host(this, "home", root));
     }
 
     @Override
@@ -196,6 +196,7 @@ public class MainActivity extends Screen implements ChatHub.Listener, Account.Li
             empty.addView(es);
             list.addView(empty, full());
         }
+        BgWall.glassify(this, "home");
     }
 
     private View sectionHeader(String label, int count) {

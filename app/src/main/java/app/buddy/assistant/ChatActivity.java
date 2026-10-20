@@ -226,13 +226,10 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
         if (glass == null) {
             frame.setFitsSystemWindows(true);
         } else {
-            // Wallpaper mode: the image runs full-bleed under the system bars (like the
-            // reference); the content column keeps the insets so nothing hides under them.
-            ImageView wp = new ImageView(this);
-            wp.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            android.graphics.Bitmap bmp = decodeWallpaper(glass.path);
-            if (bmp != null) wp.setImageBitmap(bmp);
-            frame.addView(wp, new FrameLayout.LayoutParams(
+            // Wallpaper mode: the background (image or looping video) runs full-bleed
+            // under the system bars (like the reference); the content column keeps the
+            // insets so nothing hides under them.
+            frame.addView(BgWall.backgroundView(this, glass.path), new FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
             root.setFitsSystemWindows(true);
             getWindow().setStatusBarColor(0x00000000);
@@ -301,25 +298,6 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
         View v = new View(this);
         v.setBackgroundColor(LINE);
         return v;
-    }
-
-    /** Decode the chat wallpaper at (roughly) screen size — big enough to fill, small enough to hold. */
-    private android.graphics.Bitmap decodeWallpaper(String path) {
-        try {
-            android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options();
-            o.inJustDecodeBounds = true;
-            android.graphics.BitmapFactory.decodeFile(path, o);
-            if (o.outWidth <= 0 || o.outHeight <= 0) return null;
-            int w = getResources().getDisplayMetrics().widthPixels;
-            int h = getResources().getDisplayMetrics().heightPixels;
-            int s = 1;
-            while (o.outWidth / s > w * 2 || o.outHeight / s > h * 2) s *= 2;
-            o.inJustDecodeBounds = false;
-            o.inSampleSize = s;
-            return android.graphics.BitmapFactory.decodeFile(path, o);
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     private void paintSend() {

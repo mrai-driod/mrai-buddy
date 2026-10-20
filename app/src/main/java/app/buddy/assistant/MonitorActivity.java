@@ -54,7 +54,7 @@ public class MonitorActivity extends Screen implements ChatHub.MonitorListener {
         navSlot = new FrameLayout(this);
         navSlot.addView(bottomNav(this, NAV_SESSIONS, hub.runningCount()));
         root.addView(navSlot, full());
-        setContentView(root);
+        setContentView(BgWall.host(this, "monitor", root));
 
         LinearLayout head = column(this);
         head.setPadding(dp(this, 20), dp(this, 8), dp(this, 20), dp(this, 4));
@@ -130,6 +130,7 @@ public class MonitorActivity extends Screen implements ChatHub.MonitorListener {
     protected void onResume() {
         super.onResume();
         if (isFinishing()) return;
+        BgWall.glassify(this, "monitor");
         visible = true;
         hub.monitor = this;
         pulse.start();

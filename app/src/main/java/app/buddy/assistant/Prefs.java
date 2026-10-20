@@ -216,6 +216,47 @@ final class Prefs {
         return new java.io.File(c.getFilesDir(), "chat-wallpaper.jpg");
     }
 
+    // ------------------------------------------------ backgrounds per screen
+    // The chat background is canonical. Every other screen either follows it
+    // (no pref stored) or carries its own image/video. Screens: chat, home,
+    // settings, terminal, permissions, transcript, monitor.
+
+    /** The background file a screen should show (its own, or the chat's), or null. */
+    static String bgPath(Context c, String screen) {
+        if (screen == null || "chat".equals(screen)) return wallpaper(c);
+        String own = sp(c).getString("bg_" + screen, null);
+        if (own != null && new java.io.File(own).exists()) return own;
+        return wallpaper(c);
+    }
+
+    static boolean bgIsOwn(Context c, String screen) {
+        if (screen == null || "chat".equals(screen)) return wallpaper(c) != null;
+        String own = sp(c).getString("bg_" + screen, null);
+        return own != null && new java.io.File(own).exists();
+    }
+
+    static boolean bgFollowsChat(Context c, String screen) {
+        return screen != null && !"chat".equals(screen) && !bgIsOwn(c, screen);
+    }
+
+    static void setBgOwn(Context c, String screen, String path) {
+        if (screen == null || "chat".equals(screen)) {
+            setWallpaper(c, path);
+            return;
+        }
+        if (path == null) sp(c).edit().remove("bg_" + screen).apply();
+        else sp(c).edit().putString("bg_" + screen, path).apply();
+    }
+
+    /** The file a screen's background of the given kind is copied into. */
+    static java.io.File bgFile(Context c, String screen, String ext) {
+        return new java.io.File(c.getFilesDir(), screen + "-wallpaper." + ext);
+    }
+
+    static boolean bgIsVideo(String path) {
+        return path != null && path.toLowerCase(java.util.Locale.ROOT).endsWith(".mp4");
+    }
+
     /** Agents that are signed in, as reported by the helper ("claude,codex", "none"), or null. */
     static String signedAgents(Context c) {
         return sp(c).getString("signed", null);

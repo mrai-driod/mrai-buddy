@@ -39,19 +39,44 @@ final class Glass {
         this.stroke = withAlpha(ink, 0x4D);
     }
 
-    /** The glass palette for the current wallpaper, or null when none is set. Cached per file. */
+    /** The glass palette for the chat wallpaper, or null when none is set. */
     static synchronized Glass current(Context c) {
-        String p = Prefs.wallpaper(c);
+        return forPath(Prefs.wallpaper(c));
+    }
+
+    /** The glass palette for any background file (image or video), or null. Cached per file. */
+    static synchronized Glass forPath(String p) {
         if (p == null) {
             cached = null;
             return null;
         }
         File f = new File(p);
+        if (!f.exists()) return null;
         long stamp = f.lastModified();
         if (cached != null && p.equals(cached.path) && stamp == cached.stamp) return cached;
-        int base = sampleAverage(f);
+        int base = Prefs.bgIsVideo(p) ? sampleVideoFrame(f) : sampleAverage(f);
         cached = new Glass(p, stamp, base);
         return cached;
+    }
+
+    /** Average colour of a video's first frame, so video backgrounds tint glass too. */
+    private static int sampleVideoFrame(File f) {
+        android.media.MediaMetadataRetriever r = new android.media.MediaMetadataRetriever();
+        try {
+            r.setDataSource(f.getPath());
+            Bitmap frame = r.getFrameAtTime(0, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+            if (frame == null) return 0xFF3A3632;
+            int base = averageOf(frame);
+            frame.recycle();
+            return base;
+        } catch (Exception e) {
+            return 0xFF3A3632;
+        } finally {
+            try {
+                r.release();
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     /**
@@ -70,25 +95,31 @@ final class Glass {
             o.inSampleSize = s;
             Bitmap big = BitmapFactory.decodeFile(f.getPath(), o);
             if (big == null) return 0xFF3A3632;
-            Bitmap tiny = Bitmap.createScaledBitmap(big, 24, 24, true);
-            if (tiny != big) big.recycle();
-            double r = 0, g = 0, b = 0;
-            int n = 0;
-            for (int y = 0; y < tiny.getHeight(); y++) {
-                for (int x = 0; x < tiny.getWidth(); x++) {
-                    int px = tiny.getPixel(x, y);
-                    r += Math.pow(Color.red(px), 2);
-                    g += Math.pow(Color.green(px), 2);
-                    b += Math.pow(Color.blue(px), 2);
-                    n++;
-                }
-            }
-            tiny.recycle();
-            if (n == 0) return 0xFF3A3632;
-            return Color.rgb((int) Math.sqrt(r / n), (int) Math.sqrt(g / n), (int) Math.sqrt(b / n));
+            int base = averageOf(big);
+            big.recycle();
+            return base;
         } catch (Exception e) {
             return 0xFF3A3632;
         }
+    }
+
+    /** RMS average of a bitmap over a 24×24 downscale. Does not recycle the input. */
+    static int averageOf(Bitmap src) {
+        Bitmap tiny = Bitmap.createScaledBitmap(src, 24, 24, true);
+        double r = 0, g = 0, b = 0;
+        int n = 0;
+        for (int y = 0; y < tiny.getHeight(); y++) {
+            for (int x = 0; x < tiny.getWidth(); x++) {
+                int px = tiny.getPixel(x, y);
+                r += Math.pow(Color.red(px), 2);
+                g += Math.pow(Color.green(px), 2);
+                b += Math.pow(Color.blue(px), 2);
+                n++;
+            }
+        }
+        if (tiny != src) tiny.recycle();
+        if (n == 0) return 0xFF3A3632;
+        return Color.rgb((int) Math.sqrt(r / n), (int) Math.sqrt(g / n), (int) Math.sqrt(b / n));
     }
 
     static int withAlpha(int color, int alpha) {

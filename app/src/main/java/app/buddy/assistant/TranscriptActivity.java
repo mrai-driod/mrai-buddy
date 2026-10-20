@@ -86,7 +86,7 @@ public class TranscriptActivity extends Screen implements ChatHub.MonitorListene
         frame.setBackgroundColor(BG);
         frame.setFitsSystemWindows(true);
         frame.addView(root);
-        setContentView(frame);
+        setContentView(BgWall.host(this, "transcript", frame));
     }
 
     private TextView note(String s) {
@@ -100,6 +100,7 @@ public class TranscriptActivity extends Screen implements ChatHub.MonitorListene
     protected void onResume() {
         super.onResume();
         if (isFinishing()) return;
+        BgWall.glassify(this, "transcript");
         hub.monitor = this;
         try {
             Helper.run(this, "transcript", agent, file);

@@ -60,9 +60,14 @@ final class Helper {
                 writePermissions(app);
                 // Custom AI's endpoint config must be fresh in Linux before its backend runs
                 if (args.length >= 3 && "ask".equals(args[0]) && "custom".equals(args[2])) writeCustomAi(app);
-                // Mrai AI / Custom AI read the user's persona override (if any) from Linux
-                if (args.length >= 3 && "ask".equals(args[0])
-                        && ("mrai".equals(args[2]) || "custom".equals(args[2]))) writePersona(app);
+                // The user's persona and the Action approvals state are read from Linux by
+                // EVERY backend (the chat scripts via persona.txt, buddy-run itself for the
+                // CLI backends' system prompt and OpenCode's permission config) — write both
+                // fresh before every ask, whatever the backend, so neither can go stale.
+                if (args.length >= 3 && "ask".equals(args[0])) {
+                    writePersona(app);
+                    writeApprovals(app);
+                }
                 Process p = Linux.builder(app, cmd).start();
                 p.getOutputStream().close();
                 // the helper reports through the local server; its own output is only kept for debugging
@@ -105,8 +110,26 @@ final class Helper {
         }
     }
 
-    /** The user's assistant-persona override for Mrai AI / Custom AI (empty file = default persona).
-     * Written fresh before every ask so the scripts always see the current choice. */
+    /** Action approvals state for buddy-run ("on"/"off"): when off, OpenCode's own
+     * bash/edit permission is set to allow so it never asks internally either. */
+    static void writeApprovals(Context c) {
+        File f = new File(Linux.root(c), "root/.buddy/approvals.txt");
+        try {
+            f.getParentFile().mkdirs();
+            try (OutputStream o = new FileOutputStream(f)) {
+                o.write((Prefs.actionApprovals(c) ? "on" : "off").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            }
+            try {
+                Os.chmod(f.getPath(), 0600);
+            } catch (Exception ignored) {
+            }
+        } catch (IOException e) {
+            android.util.Log.w("Buddy", "approvals not written", e);
+        }
+    }
+
+    /** The user's assistant-persona override (empty file = default persona).
+     * Written fresh before every ask so every backend sees the current choice. */
     static void writePersona(Context c) {
         String persona = Prefs.assistantPersona(c);
         File f = new File(Linux.root(c), "root/.buddy/persona.txt");

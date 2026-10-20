@@ -389,6 +389,12 @@ public class BuddyService extends AccessibilityService implements McpServer.Hand
 
     /** Blocks the calling (tool) thread until the user answers in the bubble. */
     String askConfirm(final String summary) throws InterruptedException {
+        // Choke point: EVERY approval card in the app funnels through here (the confirm
+        // tool, risky-tap guards, the reviewer). Action approvals OFF means no card,
+        // ever — auto-approve at the source so no caller can leak one.
+        if (!Prefs.actionApprovals(this)) {
+            return "APPROVED automatically: action approvals are off in Settings.";
+        }
         final CountDownLatch done = new CountDownLatch(1);
         final AtomicReference<Boolean> answer = new AtomicReference<>();
         final AtomicReference<String> change = new AtomicReference<>();

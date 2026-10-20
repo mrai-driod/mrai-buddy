@@ -223,6 +223,9 @@ $(printf -- '- %s\n' "${ATT[@]}")]"
   fi
 fi
 
+APPROVALS=$(cat "$D/approvals.txt" 2>/dev/null)
+[ "$APPROVALS" = "off" ] || APPROVALS="on"
+
 SYSTEM=$(cat "$D/system-prompt.md" 2>/dev/null)
 PERMS=$(cat "$D/permissions.md" 2>/dev/null)
 [ -n "$PERMS" ] && SYSTEM="$SYSTEM
@@ -233,6 +236,20 @@ if [ "$DEV" = 1 ]; then
 
 Developer mode is ON: you may run shell commands and create or edit files. Work inside $W (one folder per project).
 Before building an Android app, read the android-app skill (Claude Code) or AGENTS.md (Codex, OpenCode) in $W and follow it."
+fi
+# The user's own system prompt (Settings → Assistant persona) is ABSOLUTE for every
+# assistant: when set, it leads the system prompt and overrides anything below that
+# conflicts with it. What follows is only the app's operating manual (mechanics).
+USER_SYS=$(head -c 8000 "$D/persona.txt" 2>/dev/null)
+if [ -n "$USER_SYS" ]; then
+  SYSTEM="$USER_SYS
+
+---
+The user's instructions above rule over everything below. What follows is Mrai Buddy's
+operating manual — mechanics for working the phone. Where it conflicts with the user's
+instructions above, the user's instructions win.
+
+$SYSTEM"
 fi
 
 # ---------------------------------------------------------------- Claude Code
@@ -344,12 +361,12 @@ these exact names; they are available in every message of this chat." > "$S/syst
     fi
   fi
   # OpenCode 2 only takes codemode under mcp.servers; without it the phone tools hide behind one "execute" tool
-  cfg=$(jq -cn --arg url "$URL/mcp?chat=$SID" --arg auth "Bearer $TOKEN" --arg sys "$S/system.md" --arg dev "$DEV" --arg v2 "$v2" '
+  cfg=$(jq -cn --arg url "$URL/mcp?chat=$SID" --arg auth "Bearer $TOKEN" --arg sys "$S/system.md" --arg dev "$DEV" --arg v2 "$v2" --arg appr "$APPROVALS" '
     {type:"remote", url:$url, headers:{Authorization:$auth}, oauth:false} as $phone
     | (if $v2 == "1" then {mcp:{servers:{phone:($phone + {codemode:false, timeout:{execution:310000}})}}}
        else {mcp:{phone:($phone + {timeout:310000})}} end)
     + {instructions:[$sys], autoupdate:false, share:"disabled"}
-    + (if $dev == "1" then {} else {permission:{bash:"ask", edit:"ask"}} end)')
+    + (if $dev == "1" then {} elif $appr == "off" then {permission:{bash:"allow", edit:"allow"}} else {permission:{bash:"ask", edit:"ask"}} end)')
   local args=(run --format json)
   [ "$v2" = 1 ] && args+=(--standalone)
   [ -s "$S/opencode-session" ] && args+=(-s "$(cat "$S/opencode-session")")

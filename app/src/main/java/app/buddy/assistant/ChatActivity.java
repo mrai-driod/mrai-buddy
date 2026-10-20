@@ -37,6 +37,7 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
     private ImageButton speaker, send;
     private EditText input;
     private int maxBubble;
+    private Glass glass; // non-null when a chat wallpaper is set: glass palette derived from the image
     private ToolLog log; // the tool-call group being appended to, if the last message was a step
     private final java.util.List<String> pending = new java.util.ArrayList<>(); // attachments for the next message
     private android.widget.HorizontalScrollView trayScroll;
@@ -54,23 +55,34 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
             return;
         }
         maxBubble = (int) (getResources().getDisplayMetrics().widthPixels * 0.82f);
+        glass = Glass.current(this);
 
         LinearLayout root = column(this);
-        root.setBackgroundColor(BG);
+        root.setBackgroundColor(glass == null ? BG : 0x00000000);
 
         // app bar
         LinearLayout top = row(this);
         top.setPadding(dp(this, 4), dp(this, 4), dp(this, 4), dp(this, 4));
         ImageButton back = iconButton(this, R.drawable.ms_arrow_back, "Back");
+        if (glass != null) back.setImageTintList(ColorStateList.valueOf(glass.ink));
         back.setLayoutParams(new LinearLayout.LayoutParams(dp(this, 44), dp(this, 44)));
         back.setOnClickListener(v -> finish());
         top.addView(back);
         LinearLayout titles = column(this);
         titles.setPadding(dp(this, 4), 0, dp(this, 4), 0);
         title = single(title(this, ses.label(), 16));
+        if (glass != null) {
+            title.setTextColor(glass.ink);
+            title.setShadowLayer(dp(this, 3), 0, dp(this, 1),
+                    glass.dark ? 0x99000000 : 0x99FFFFFF);
+        }
         titles.addView(title);
         LinearLayout chip = chip(this, "");
         chipText = (TextView) chip.getChildAt(0);
+        if (glass != null) {
+            chip.setBackground(outlined(this, glass.fill, 8, glass.stroke, 1));
+            chipText.setTextColor(glass.inkMuted);
+        }
         chip.setOnClickListener(v -> chooseModel());
         LinearLayout.LayoutParams cp = wrap();
         cp.topMargin = dp(this, 3);
@@ -87,15 +99,18 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
         });
         top.addView(speaker);
         root.addView(top, full());
-        root.addView(divider(), new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(this, 1)));
+        View div = divider();
+        if (glass != null) div.setBackgroundColor(glass.stroke);
+        root.addView(div, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(this, 1)));
 
         // running strip
         strip = row(this);
         strip.setPadding(dp(this, 12), dp(this, 6), dp(this, 6), dp(this, 6));
-        strip.setBackground(rounded(this, CARD, 12));
+        strip.setBackground(glass == null ? rounded(this, CARD, 12)
+                : outlined(this, glass.fill, 12, glass.stroke, 1));
         ProgressBar sp = spinner(this, 16);
         strip.addView(sp);
-        stripText = single(monoText(this, "", 12, ACCENT_TEXT));
+        stripText = single(monoText(this, "", 12, glass == null ? ACCENT_TEXT : glass.ink));
         stripText.setPadding(dp(this, 10), 0, dp(this, 8), 0);
         strip.addView(stripText, weight1());
         Button stop = button(this, "Stop", false);
@@ -135,15 +150,17 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
 
         pill = row(this);
         pill.setPadding(dp(this, 4), dp(this, 4), dp(this, 4), dp(this, 4));
-        ImageButton attach = iconButton(this, R.drawable.ms_attach_file, "Attach a photo or file", MUTED);
+        ImageButton attach = iconButton(this, R.drawable.ms_attach_file, "Attach a photo or file",
+                glass == null ? MUTED : glass.inkMuted);
         attach.setLayoutParams(new LinearLayout.LayoutParams(dp(this, 40), dp(this, 40)));
         attach.setOnClickListener(v -> attachSheet());
         pill.addView(attach);
-        pill.setBackground(outlined(this, CARD, 26, OUTLINE, 1));
+        pill.setBackground(glass == null ? outlined(this, CARD, 26, OUTLINE, 1)
+                : outlined(this, glass.fill, 26, glass.stroke, 1));
         input = new EditText(this);
         input.setHint("Ask " + ses.brainName() + "…");
-        input.setHintTextColor(MUTED);
-        input.setTextColor(TEXT);
+        input.setHintTextColor(glass == null ? MUTED : glass.inkMuted);
+        input.setTextColor(glass == null ? TEXT : glass.ink);
         input.setTextSize(15);
         input.setTypeface(sans(this, 400));
         input.setMaxLines(6);
@@ -205,8 +222,22 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
 
         // the outer frame takes the system-bar insets
         FrameLayout frame = new FrameLayout(this);
-        frame.setBackgroundColor(BG);
-        frame.setFitsSystemWindows(true);
+        frame.setBackgroundColor(glass == null ? BG : 0x00000000);
+        if (glass == null) {
+            frame.setFitsSystemWindows(true);
+        } else {
+            // Wallpaper mode: the image runs full-bleed under the system bars (like the
+            // reference); the content column keeps the insets so nothing hides under them.
+            ImageView wp = new ImageView(this);
+            wp.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            android.graphics.Bitmap bmp = decodeWallpaper(glass.path);
+            if (bmp != null) wp.setImageBitmap(bmp);
+            frame.addView(wp, new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+            root.setFitsSystemWindows(true);
+            getWindow().setStatusBarColor(0x00000000);
+            getWindow().setNavigationBarColor(0x00000000);
+        }
         frame.addView(root);
         setContentView(frame);
 
@@ -272,8 +303,32 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
         return v;
     }
 
+    /** Decode the chat wallpaper at (roughly) screen size — big enough to fill, small enough to hold. */
+    private android.graphics.Bitmap decodeWallpaper(String path) {
+        try {
+            android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options();
+            o.inJustDecodeBounds = true;
+            android.graphics.BitmapFactory.decodeFile(path, o);
+            if (o.outWidth <= 0 || o.outHeight <= 0) return null;
+            int w = getResources().getDisplayMetrics().widthPixels;
+            int h = getResources().getDisplayMetrics().heightPixels;
+            int s = 1;
+            while (o.outWidth / s > w * 2 || o.outHeight / s > h * 2) s *= 2;
+            o.inJustDecodeBounds = false;
+            o.inSampleSize = s;
+            return android.graphics.BitmapFactory.decodeFile(path, o);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private void paintSend() {
         boolean has = input.getText().toString().trim().length() > 0 || !pending.isEmpty();
+        if (glass != null && !has) {
+            send.setBackground(oval(glass.fillStrong));
+            send.setImageTintList(ColorStateList.valueOf(glass.inkMuted));
+            return;
+        }
         send.setBackground(oval(has ? ACCENT : CARD2));
         send.setImageTintList(ColorStateList.valueOf(has ? ON_ACCENT : MUTED));
     }
@@ -523,7 +578,7 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
     private void refresh() {
         boolean speak = Prefs.speakReplies(this);
         speaker.setImageResource(speak ? R.drawable.ms_volume_up : R.drawable.ms_volume_off);
-        speaker.setImageTintList(ColorStateList.valueOf(speak ? ACCENT : MUTED));
+        speaker.setImageTintList(ColorStateList.valueOf(speak ? ACCENT : glass == null ? MUTED : glass.inkMuted));
         title.setText(ses.label());
         chipText.setText(Models.summary(ses) + (Prefs.devMode(this) ? " · dev" : ""));
         strip.setVisibility(ses.running ? View.VISIBLE : View.GONE);
@@ -549,7 +604,9 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
         if (ask == null) return;
         LinearLayout card = column(this);
         card.setPadding(dp(this, 16), dp(this, 14), dp(this, 16), dp(this, 14));
-        card.setBackground(outlined(this, CARD, 18, Theme.withAlpha(ACCENT, 0x73), 1));
+        card.setBackground(glass == null
+                ? outlined(this, CARD, 18, Theme.withAlpha(ACCENT, 0x73), 1)
+                : outlined(this, glass.fillStrong, 18, glass.stroke, 1));
         LinearLayout hr = row(this);
         hr.addView(icon(this, R.drawable.ms_shield_person, ACCENT_TEXT, 18));
         TextView lab = text(this, options != null ? "QUESTION" : "NEEDS YOUR OK", 12, ACCENT_TEXT);
@@ -558,7 +615,7 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
         lab.setPadding(dp(this, 8), 0, 0, 0);
         hr.addView(lab);
         card.addView(hr);
-        TextView well = text(this, ask, 14, TEXT);
+        TextView well = text(this, ask, 14, glass == null ? TEXT : glass.ink);
         well.setPadding(dp(this, 12), dp(this, 10), dp(this, 12), dp(this, 10));
         // long texts scroll inside the card, so its buttons always stay on screen
         final int maxH = (int) (getResources().getDisplayMetrics().heightPixels * 0.3f);
@@ -568,7 +625,8 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
                 super.onMeasure(w, MeasureSpec.makeMeasureSpec(maxH, MeasureSpec.AT_MOST));
             }
         };
-        ws.setBackground(rounded(this, BG, 12));
+        ws.setBackground(glass == null ? rounded(this, BG, 12)
+                : outlined(this, glass.fill, 12, glass.stroke, 1));
         ws.addView(well);
         LinearLayout.LayoutParams wp = full();
         wp.topMargin = dp(this, 10);
@@ -644,15 +702,16 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
         btns.setVisibility(View.GONE);
         EditText what = new EditText(this);
         what.setHint(answering ? "Your answer" : "What should change?");
-        what.setHintTextColor(MUTED);
-        what.setTextColor(TEXT);
+        what.setHintTextColor(glass == null ? MUTED : glass.inkMuted);
+        what.setTextColor(glass == null ? TEXT : glass.ink);
         what.setTextSize(15);
         what.setMinLines(2);
         what.setMaxLines(6);
         what.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE
                 | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES | InputType.TYPE_TEXT_FLAG_AUTO_CORRECT);
         what.setPadding(dp(this, 12), dp(this, 10), dp(this, 12), dp(this, 10));
-        what.setBackground(rounded(this, BG, 12));
+        what.setBackground(glass == null ? rounded(this, BG, 12)
+                : outlined(this, glass.fill, 12, glass.stroke, 1));
         card.addView(what, full());
         LinearLayout row = row(this);
         Button back = button(this, "Back", false);
@@ -709,10 +768,10 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
                 col.addView(attachmentView(id, true), fp);
             }
             if (!m.text.isEmpty()) {
-                TextView tv = text(this, m.text, 15, TEXT);
+                TextView tv = text(this, m.text, 15, glass == null ? TEXT : glass.ink);
                 links(tv);
                 tv.setMaxWidth(maxBubble);
-                tv.setBackground(corners(this, USER, 20, 20, 6, 20));
+                tv.setBackground(corners(this, glass == null ? USER : glass.fillStrong, 20, 20, 6, 20));
                 tv.setPadding(dp(this, 14), dp(this, 10), dp(this, 14), dp(this, 10));
                 copyOnLongPress(tv, m.text);
                 LinearLayout.LayoutParams tp = wrap();
@@ -930,10 +989,10 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
         View v;
         switch (kind) {
             case USER: {
-                TextView tv = text(this, text, 15, TEXT);
+                TextView tv = text(this, text, 15, glass == null ? TEXT : glass.ink);
                 links(tv);
                 tv.setMaxWidth(maxBubble);
-                tv.setBackground(corners(this, USER, 20, 20, 6, 20));
+                tv.setBackground(corners(this, glass == null ? USER : glass.fillStrong, 20, 20, 6, 20));
                 tv.setPadding(dp(this, 14), dp(this, 10), dp(this, 14), dp(this, 10));
                 copyOnLongPress(tv, text);
                 p.gravity = Gravity.END;
@@ -944,19 +1003,19 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
                 LinearLayout r = row(this);
                 r.setGravity(Gravity.BOTTOM);
                 FrameLayout av = new FrameLayout(this);
-                av.setBackground(oval(ACCENT_SOFT));
+                av.setBackground(oval(glass == null ? ACCENT_SOFT : glass.fillStrong));
                 ImageView face = new ImageView(this);
                 face.setImageResource(R.drawable.bubble_face_idle);
                 av.addView(face, new FrameLayout.LayoutParams(dp(this, 20), dp(this, 20), Gravity.CENTER));
                 LinearLayout.LayoutParams avp = new LinearLayout.LayoutParams(dp(this, 24), dp(this, 24));
                 avp.rightMargin = dp(this, 8);
                 r.addView(av, avp);
-                TextView tv = text(this, text, 15, TEXT);
+                TextView tv = text(this, text, 15, glass == null ? TEXT : glass.ink);
                 tv.setTextIsSelectable(true);
                 links(tv);
                 tv.setLineSpacing(0, 1.15f);
                 tv.setMaxWidth(maxBubble - dp(this, 32));
-                tv.setBackground(corners(this, CARD, 20, 20, 20, 6));
+                tv.setBackground(corners(this, glass == null ? CARD : glass.fill, 20, 20, 20, 6));
                 tv.setPadding(dp(this, 14), dp(this, 10), dp(this, 14), dp(this, 10));
                 r.addView(tv);
                 v = r;
@@ -1008,15 +1067,17 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
         View lastMark;
 
         ToolLog() {
-            view.setBackground(outlined(ChatActivity.this, 0x00000000, 14, LINE, 1));
+            view.setBackground(glass == null
+                    ? outlined(ChatActivity.this, 0x00000000, 14, LINE, 1)
+                    : outlined(ChatActivity.this, glass.fill, 14, glass.stroke, 1));
             LinearLayout head = row(ChatActivity.this);
             head.setPadding(dp(ChatActivity.this, 12), dp(ChatActivity.this, 10), dp(ChatActivity.this, 8), dp(ChatActivity.this, 10));
             head.setBackgroundResource(ripple(ChatActivity.this, false));
-            head.addView(icon(ChatActivity.this, R.drawable.ms_terminal, MUTED, 16));
-            count = monoText(ChatActivity.this, "", 12, MUTED);
+            head.addView(icon(ChatActivity.this, R.drawable.ms_terminal, glass == null ? MUTED : glass.inkMuted, 16));
+            count = monoText(ChatActivity.this, "", 12, glass == null ? MUTED : glass.inkMuted);
             count.setPadding(dp(ChatActivity.this, 8), 0, 0, 0);
             head.addView(count, weight1());
-            chevron = icon(ChatActivity.this, R.drawable.ms_expand_more, MUTED, 18);
+            chevron = icon(ChatActivity.this, R.drawable.ms_expand_more, glass == null ? MUTED : glass.inkMuted, 18);
             head.addView(chevron);
             head.setOnClickListener(v -> {
                 userToggled = true;
@@ -1048,9 +1109,9 @@ public class ChatActivity extends Screen implements ChatHub.Listener {
             r.setPadding(0, dp(ChatActivity.this, 4), 0, dp(ChatActivity.this, 4));
             FrameLayout mark = new FrameLayout(ChatActivity.this);
             r.addView(mark, new LinearLayout.LayoutParams(dp(ChatActivity.this, 16), dp(ChatActivity.this, 16)));
-            TextView t = monoText(ChatActivity.this, "", 12, MUTED);
+            TextView t = monoText(ChatActivity.this, "", 12, glass == null ? MUTED : glass.inkMuted);
             android.text.SpannableStringBuilder sb = new android.text.SpannableStringBuilder(name);
-            sb.setSpan(new android.text.style.ForegroundColorSpan(TEXT), 0, name.length(), 0);
+            sb.setSpan(new android.text.style.ForegroundColorSpan(glass == null ? TEXT : glass.ink), 0, name.length(), 0);
             sb.append(arg);
             t.setText(sb);
             t.setMaxLines(3);

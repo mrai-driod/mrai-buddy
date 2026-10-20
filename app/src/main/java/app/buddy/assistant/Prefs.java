@@ -199,6 +199,23 @@ final class Prefs {
         sp(c).edit().putString("surface", s).apply();
     }
 
+    /** Chat wallpaper: absolute path of the user's chosen image (app-private copy), or null. */
+    static String wallpaper(Context c) {
+        String p = sp(c).getString("chat_wallpaper", null);
+        if (p == null || !new java.io.File(p).exists()) return null;
+        return p;
+    }
+
+    static void setWallpaper(Context c, String path) {
+        if (path == null) sp(c).edit().remove("chat_wallpaper").apply();
+        else sp(c).edit().putString("chat_wallpaper", path).apply();
+    }
+
+    /** The file the chat wallpaper image is copied into. */
+    static java.io.File wallpaperFile(Context c) {
+        return new java.io.File(c.getFilesDir(), "chat-wallpaper.jpg");
+    }
+
     /** Agents that are signed in, as reported by the helper ("claude,codex", "none"), or null. */
     static String signedAgents(Context c) {
         return sp(c).getString("signed", null);

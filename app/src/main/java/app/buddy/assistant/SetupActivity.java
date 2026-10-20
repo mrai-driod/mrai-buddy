@@ -79,6 +79,73 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         if (!isFinishing() && !isDestroyed()) render();
     }
 
+    private static final int REQ_WALLPAPER = 41;
+
+    /** Open the photo picker for the chat wallpaper. Any image is allowed. */
+    private void pickWallpaper() {
+        try {
+            android.content.Intent i;
+            if (android.os.Build.VERSION.SDK_INT >= 33) {
+                i = new android.content.Intent(android.provider.MediaStore.ACTION_PICK_IMAGES);
+            } else {
+                i = new android.content.Intent(android.content.Intent.ACTION_GET_CONTENT).setType("image/*");
+            }
+            startActivityForResult(i, REQ_WALLPAPER);
+        } catch (android.content.ActivityNotFoundException e) {
+            Toast.makeText(this, "No photo app on this phone can do that.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int code, int result, android.content.Intent data) {
+        super.onActivityResult(code, result, data);
+        if (code != REQ_WALLPAPER || result != RESULT_OK || data == null || data.getData() == null) return;
+        final android.net.Uri uri = data.getData();
+        Toast.makeText(this, "Setting wallpaper…", Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            boolean ok = saveWallpaper(uri);
+            runOnUiThread(() -> {
+                if (ok) {
+                    Prefs.setWallpaper(this, Prefs.wallpaperFile(this).getPath());
+                    Toast.makeText(this, "Wallpaper set. Open a chat to see it.", Toast.LENGTH_SHORT).show();
+                    render();
+                } else {
+                    Toast.makeText(this, "That image couldn't be used as a wallpaper.", Toast.LENGTH_LONG).show();
+                }
+            });
+        }).start();
+    }
+
+    /** Copy the picked image into app storage, downscaled to a sane backdrop size. */
+    private boolean saveWallpaper(android.net.Uri uri) {
+        int sample = 1;
+        try (java.io.InputStream in = getContentResolver().openInputStream(uri)) {
+            if (in == null) return false;
+            android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options();
+            o.inJustDecodeBounds = true;
+            android.graphics.BitmapFactory.decodeStream(in, null, o);
+            if (o.outWidth <= 0 || o.outHeight <= 0) return false;
+            while (o.outWidth / sample > 1600 || o.outHeight / sample > 1600) sample *= 2;
+        } catch (Exception e) {
+            return false;
+        }
+        try (java.io.InputStream in = getContentResolver().openInputStream(uri)) {
+            if (in == null) return false;
+            android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options();
+            o.inSampleSize = sample;
+            android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeStream(in, null, o);
+            if (bmp == null) return false;
+            java.io.File out = Prefs.wallpaperFile(this);
+            try (java.io.FileOutputStream fos = new java.io.FileOutputStream(out)) {
+                bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 88, fos);
+            }
+            bmp.recycle();
+            return out.exists() && out.length() > 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /** Appearance changed on this screen: restyle everything in place, keeping the scroll position. */
     private void themeChanged() {
         Theme.changed(this);
@@ -175,6 +242,31 @@ public class SetupActivity extends Screen implements Account.Listener, RemoteSes
         }), topGap(8));
         TextView sn = text(this, "Warm is Mrai Buddy's original tone. Black (true black) applies in dark mode only.", 13, MUTED);
         ap.addView(sn, topGap(8));
+        ap.addView(fieldLabel("Chat wallpaper", Prefs.wallpaper(this) == null ? "Off" : "On"), topGap(18));
+        TextView wn = text(this, "Any image you like becomes the chat backdrop, and the chat's glass "
+                + "surfaces take their tint from the image itself.", 13, MUTED);
+        ap.addView(wn, topGap(4));
+        LinearLayout wrow = row(this);
+        Button wpick = button(this, Prefs.wallpaper(this) == null ? "Choose image…" : "Change image…", false);
+        wpick.setOnClickListener(v -> pickWallpaper());
+        wrow.addView(wpick);
+        if (Prefs.wallpaper(this) != null) {
+            Button wclear = button(this, "Remove", false);
+            wclear.setTextColor(ERR);
+            LinearLayout.LayoutParams wlp = wrap();
+            wlp.leftMargin = dp(this, 10);
+            wclear.setOnClickListener(v -> {
+                try {
+                    Prefs.wallpaperFile(this).delete();
+                } catch (Exception ignored) {
+                }
+                Prefs.setWallpaper(this, null);
+                Toast.makeText(this, "Wallpaper removed.", Toast.LENGTH_SHORT).show();
+                render();
+            });
+            wrow.addView(wclear, wlp);
+        }
+        ap.addView(wrow, topGap(10));
         addCard(ap);
 
         // ---------------------------------------------------------------- agent

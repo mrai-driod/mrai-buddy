@@ -473,25 +473,33 @@ run_local() {
   [ -f "$hist" ] || echo '[]' > "$hist"
   jq --arg m "$MSG" '.[-39:] + [{role:"user", content:$m}]' "$hist" > "$hist.new" && mv "$hist.new" "$hist"
   sys="$(persona)"; [ -n "$sys" ] || sys="$LOCAL_PERSONA"
-  jq -cn --arg sys "$sys" --slurpfile h "$hist" '{system_prompt:$sys, messages:$h[0]}' \
+  # Pass auth/sid/post_url so local-ai.py can direct-post (Custom AI pattern);
+  # the stream parser below remains the fallback and files the history.
+  jq -cn --arg sys "$sys" --arg auth "$TOKEN" --arg sid "$SID" --arg url "$URL" --slurpfile h "$hist" \
+    '{system_prompt:$sys, messages:$h[0], auth:$auth, sid:$sid, post_url:$url}' \
     | python3 /root/bin/local-ai.py 2>"$S/last-error.log"
 }
 
 # local-ai.py answers in one JSON line; translate it into the stream format.
+# When the line is flagged "direct": true, local-ai.py already posted the events
+# itself — here we only file the history so nothing is posted twice.
 stream_local() {
-  local line kind r e h
+  local line kind r e h d
   while IFS= read -r line; do
     kind=$(printf '%s' "$line" | jq -r \
       'if has("reply") then "reply" elif has("error") then "error" else empty end' 2>/dev/null)
+    d=$(printf '%s' "$line" | jq -r '.direct // false')
     case "$kind" in
       reply)
         r=$(printf '%s' "$line" | jq -r '.reply')
         h=$(printf '%s' "$line" | jq -c '.history // []')
         printf '%s' "$h" > "$S/local-history.json"
+        [ "$d" = "true" ] && continue
         jq -cn --arg t "$r" --arg s "$SID" \
           '{type:"assistant", message:{content:[{type:"text", text:$t}]}, buddy_session:$s}' | post
         jq -cn --arg s "$SID" '{type:"result", subtype:"success", result:"", buddy_session:$s}' | post ;;
       error)
+        [ "$d" = "true" ] && continue
         e=$(printf '%s' "$line" | jq -r '.error')
         jq -cn --arg e "$e" --arg s "$SID" '{type:"buddy_error", text:$e, buddy_session:$s}' | post ;;
     esac

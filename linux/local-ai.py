@@ -8,8 +8,15 @@ sub-500MB GGUF model on 127.0.0.1:8080 with an OpenAI-compatible API.
 PLAIN MODE: the user's own system prompt (Settings → Assistant persona)
 replaces the default entirely. This file adds no personality of its own.
 
-Protocol: stdin {"system_prompt": str, "messages": [...]}
+Protocol: stdin {"system_prompt": str, "messages": [...],
+                 "auth": str, "sid": str, "post_url": str}
 → stdout {"reply": str, "history": [...]} or {"error": str}.
+
+DIRECT-POST (v0.0.6, same pattern as Custom AI): when auth/sid/post_url are
+present, this script POSTs the assistant/result (or buddy_error) events to the
+app itself and flags the stdout line "direct": true so buddy-run's stream
+parser only files the history instead of posting twice. If any direct POST
+fails, the flag stays false and the stream parser posts as before.
 """
 import json
 import os
@@ -91,12 +98,33 @@ def ask(system_prompt, messages):
         return {"error": "Local AI request failed: %s" % type(e).__name__}
 
 
+def post_event(post_url, auth, sid, event):
+    """POST one event directly to the app. Returns True on success."""
+    try:
+        req = urllib.request.Request(
+            post_url + "/event",
+            data=json.dumps(event).encode("utf-8"),
+            headers={"Content-Type": "application/json",
+                     "Authorization": "Bearer " + auth,
+                     "User-Agent": "MraiBuddy/1.0"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            r.read()
+        return True
+    except Exception:
+        return False
+
+
 def main():
     try:
         payload = json.loads(sys.stdin.read() or "{}")
     except Exception:
         print(json.dumps({"error": "Local AI couldn't read its input."}), flush=True)
         return
+    auth = payload.get("auth", "")
+    sid = payload.get("sid", "")
+    post_url = payload.get("post_url", "")
+    direct = bool(auth and sid and post_url)
+
     system_prompt = (payload.get("system_prompt") or "").strip() or DEFAULT_PERSONA
     clean = []
     for m in payload.get("messages") or []:
@@ -106,9 +134,26 @@ def main():
     result = ask(system_prompt, clean)
     if "reply" in result:
         history = (clean + [{"role": "assistant", "content": result["reply"]}])[-30:]
-        print(json.dumps({"reply": result["reply"], "history": history}), flush=True)
+        posted = False
+        if direct:
+            posted = post_event(post_url, auth, sid,
+                                {"type": "assistant",
+                                 "message": {"content": [{"type": "text",
+                                                           "text": result["reply"]}]},
+                                 "buddy_session": sid})
+            if posted:
+                posted = post_event(post_url, auth, sid,
+                                    {"type": "result", "subtype": "success",
+                                     "result": "", "buddy_session": sid})
+        print(json.dumps({"reply": result["reply"], "history": history,
+                          "direct": posted}), flush=True)
     else:
-        print(json.dumps({"error": result["error"]}), flush=True)
+        posted = False
+        if direct:
+            posted = post_event(post_url, auth, sid,
+                                {"type": "buddy_error", "text": result["error"],
+                                 "buddy_session": sid})
+        print(json.dumps({"error": result["error"], "direct": posted}), flush=True)
 
 
 if __name__ == "__main__":
